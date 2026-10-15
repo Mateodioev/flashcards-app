@@ -26,17 +26,18 @@ useful and testable before that risk lands.
 
 ## Delivery strategy
 
-**`single-pr` is impossible right now.** No git remote is configured, so no PR mechanism
-exists — pull requests cannot be opened, and `chained-pr` / `work-unit-commits` skills are
-not applicable until a remote exists.
+**Local-only. No PRs.** No git remote is configured, and that is the accepted decision
+(T0.2), not a missing step — so no PR mechanism exists and `single-pr`, `chained-pr`, and
+`work-unit-commits` are all inapplicable for now.
 
 Consequence, recorded honestly:
 
-- Work proceeds as **local work-unit commits**, one per list or per coherent sub-list.
+- Work proceeds as **local work-unit commits** on the feature branch, one per list or per
+  coherent sub-list.
 - The `docs/app-plan` branch already exists and holds this plan.
-- **Open decision:** once a remote is added, the ~4,200-line forecast exceeds the ~400-line
+- **Deferred:** if a remote is added later, the ~4,200-line forecast exceeds the ~400-line
   review budget, so a chain strategy (`stacked-to-main` or `feature-branch-chain`) becomes
-  required. Resolve the `chained-pr` skill at that point. This is not addressed yet.
+  required. Resolve the `chained-pr` skill then. Not addressed now.
 
 Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this file.
 
@@ -44,15 +45,27 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## List 0 — Bootstrap
 
-- [ ] **T0.1** Branch for the plan (`docs/app-plan`). *Verification: branch exists, plan committed.*
-- [ ] **T0.2** Configure a git remote, or record the decision to stay local-only.
-  *Verification: `git remote -v` non-empty, or open decision explicitly accepted.*
+- [x] **T0.1** Branch for the plan (`docs/app-plan`). *Done: branch exists, plan committed.*
+- [x] **T0.2** **Resolved: no git remote. Stay local-only.** Delivery proceeds as local
+  work-unit commits on a feature branch. No pull requests until a remote is added.
+  *Verification: `git remote -v` is empty by decision, not by oversight.*
 
 ## List 1 — Foundation
 
-- [ ] **T1.1** `flutter create --platforms=android --org <org> .`
-  **Android only** — do not scaffold iOS, web, or desktop.
-  *Verification: `android/` exists, `ios/ web/ linux/ windows/ macos/` do not.*
+- [ ] **T1.1** Create the project **Android only**:
+  `flutter create --platforms=android --org <org> --project-name <name> .`
+  Do not scaffold iOS, web, or desktop.
+  *Verification: `android/` exists; `ios/ web/ linux/ windows/ macos/` do not.*
+- [ ] **T1.1a** **Merge Flutter's `.gitignore` patterns into the existing root
+  `.gitignore` — do not assume `flutter create` does it.**
+  `flutter create` **preserves an existing `.gitignore` verbatim** and silently writes
+  none of its own patterns (verified against Flutter's `app/.gitignore.tmpl`). Because the
+  repo already has a root `.gitignore`, `.dart_tool/` and `/build/` would end up tracked.
+  Keep the existing lines (`/.idea/`, `/.atl/`, `*.cache`) and add the Flutter template
+  patterns on top.
+  *Verification: `git status --short` shows no `.dart_tool/`, `/build/`, or `*.iml` entries
+  after `flutter pub get` and a `flutter build apk --debug`. Do not proceed to T1.2 until
+  this passes — build artifacts committed once are painful to remove from history.*
 - [ ] **T1.2** Add dependencies: `drift`, `sqflite`, `riverpod`, `freezed`, `dio`,
   `flutter_secure_storage`, `flutter_math_fork`, `image_picker`.
   *Verification: `flutter pub get` clean; no `flutter_tex` in `pubspec.yaml`.*
@@ -196,7 +209,7 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 |---|---|
 | iOS, web, desktop targets | Decision 3: Android only |
 | AI grading of answers | Decision 2: disabled |
-| Chained-PR slicing | No remote configured; revisit when one exists |
+| Chained-PR slicing | No remote (T0.2): local commits only; revisit if a remote is added |
 | Learning-style personalization | VAK neuromyth, `:932-958` |
 | Highlighting / summarization / re-reading | Dunlosky LOW ratings, `:899-903` |
 | `flutter_tex` | WebView dependency, offline-hostile |
@@ -204,7 +217,8 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## Next step
 
-Execute **T0.2** (remote decision) and **T1.1** (Android-only scaffold), then **T2.1**.
+Execute **T1.1** (Android-only scaffold), then **T1.1a** (merge Flutter's `.gitignore`
+patterns into the root file) **before `flutter pub get`/`flutter build`**, then **T2.1**.
 
 Do not start List 3 until the FSRS-5 constants are confirmed against the canonical
 implementation — that single fact is the gate for the app's core value.

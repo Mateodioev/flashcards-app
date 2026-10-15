@@ -220,9 +220,12 @@ LaTeX on dark backgrounds is a specific contrast risk and needs golden tests.
 | Two conflicting onboarding models | `:1101` vs `:1044-1047` | Adopt the short audit |
 | Dual-coding endorsed but imagery rated LOW | `:865` vs `:902` | Build image support for *captured content*, do not market it as a learning-style feature |
 
-## Open decisions
+## Delivery decision
 
-1. **Delivery strategy for ~4,200 forecast authored lines.** No git remote is configured,
-   so pull requests are not currently possible and local work-unit commits are the only
-   available mechanism. Revisit when a remote is added; resolve the `chained-pr` skill
-   before slicing.
+**No git remote. Local-only.** Confirmed by the project owner; this is a deliberate choice,
+not an oversight.
+
+Consequence for the ~4,200 forecast authored lines: pull requests are impossible, so
+`chained-pr` and PR-based review slicing are inapplicable. Delivery is a sequence of local
+work-unit commits on a feature branch. If a remote is added later, the forecast already
+exceeds the ~400-line review budget, so a chain strategy becomes required at that point.
