@@ -123,6 +123,15 @@ class ScheduleStates extends Table {
 
   IntColumn get lapses => integer().withDefault(const Constant(0))();
 
+  /// Index into the active sub-day step list for [state].
+  ///
+  /// Meaningful while `learning` or `relearning`, and ignored otherwise. It is
+  /// persisted because the card's next due time depends on *which* step it sits
+  /// on: without it a sub-day step cannot be resumed across app restarts.
+  ///
+  /// Added in schema v2.
+  IntColumn get step => integer().withDefault(const Constant(0))();
+
   /// Stored as the review-state vocabulary (`new`, `learning`, ...) via
   /// [ReviewStateConverter]; `new` is a Dart keyword and cannot be an enum
   /// member, so `textEnum` cannot express this column.

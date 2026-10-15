@@ -137,6 +137,7 @@ class DriftCardRepository implements CardRepository {
         reps: Value(state.reps),
         lapses: Value(state.lapses),
         state: Value(state.state),
+        step: Value(state.step),
       ),
     );
   }
@@ -205,6 +206,7 @@ class DriftCardRepository implements CardRepository {
       reps: row.reps,
       lapses: row.lapses,
       state: row.state,
+      step: row.step,
     );
   }
 }

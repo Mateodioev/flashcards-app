@@ -274,24 +274,68 @@ void main() {
     expect(await db.appSettings.select().get(), hasLength(1));
   });
 
-  test('schema version is 1 and the migration strategy is explicit', () async {
-    expect(db.schemaVersion, 1);
+  test('schema version is 2 and the migration strategy is explicit', () async {
+    expect(db.schemaVersion, 2);
     expect(db.migration.beforeOpen, isNotNull);
-    expect(GeneratedHelper.versions, [1]);
+    expect(db.migration.onUpgrade, isNotNull);
+    expect(GeneratedHelper.versions, [1, 2]);
   });
 
-  test('a fresh database matches the committed v1 snapshot', () async {
+  test('a fresh database matches the committed v2 snapshot', () async {
     // `GeneratedHelper` is generated from the committed
-    // `drift_schemas/drift_schema_v1.json`. Opening a database from that
+    // `drift_schemas/drift_schema_v2.json`. Opening a database from that
     // snapshot and validating it compares the *snapshot* against the schema
     // the table declarations generate from scratch — so this fails if the
     // committed JSON and the Drift tables ever drift apart.
     final verifier = SchemaVerifier(GeneratedHelper());
-    final schema = await verifier.schemaAt(1);
+    final schema = await verifier.schemaAt(2);
     final opened = AppDatabase(schema.newConnection());
 
     await opened.validateDatabaseSchema();
 
     await opened.close();
+  });
+
+  test('migrating a v1 database to v2 adds the step column', () async {
+    // The real point of keeping v1 around: prove an existing install upgrades
+    // rather than silently losing the column, and that pre-existing rows land
+    // on step 0 instead of null.
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(1);
+    final old = AppDatabase(schema.newConnection());
+
+    // Seed a v1-shaped row before upgrading.
+    final courseId = await old
+        .into(old.courses)
+        .insert(CoursesCompanion.insert(name: 'Course'));
+    final themeId = await old
+        .into(old.themes)
+        .insert(ThemesCompanion.insert(courseId: courseId, name: 'Theme'));
+    final cardId = await old
+        .into(old.cards)
+        .insert(CardsCompanion.insert(themeId: themeId, front: 'a', back: 'b'));
+    await old
+        .into(old.scheduleStates)
+        .insert(
+          ScheduleStatesCompanion.insert(
+            cardId: Value(cardId),
+            due: DateTime.utc(2022, 12),
+          ),
+        );
+    await old.close();
+
+    // Reopen the same connection, which runs `onUpgrade`.
+    final upgraded = AppDatabase(schema.newConnection());
+    final migrated = await (upgraded.select(
+      upgraded.scheduleStates,
+    )..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
+
+    expect(migrated, isNotNull);
+    expect(migrated!.step, 0, reason: 'pre-existing rows default to step 0');
+    // Drift returns DateTimes in local time, so compare instants rather than
+    // representations. Any day-boundary logic must normalise accordingly.
+    expect(migrated.due.isAtSameMomentAs(DateTime.utc(2022, 12)), isTrue);
+
+    await upgraded.close();
   });
 }

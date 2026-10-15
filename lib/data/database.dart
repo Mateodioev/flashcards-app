@@ -47,16 +47,21 @@ class AppDatabase extends _$AppDatabase {
   static const int defaultNewCardsPerDay = kDefaultNewCardsPerDay;
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
-      // v1 has nothing to migrate yet. `onUpgrade` is declared explicitly so
-      // the next schema version has an obvious, already-wired hook — an absent
-      // strategy is easy to forget and silently defaults to a no-op.
       onCreate: (m) => m.createAll(),
-      onUpgrade: (m, from, to) async {},
+      onUpgrade: (m, from, to) async {
+        // v2 added `schedule_states.step`, the persisted index into the sub-day
+        // learning/relearning step list. Defaulting it to 0 puts every existing
+        // card on the first step, which is the correct place for a card whose
+        // step index was never recorded.
+        if (from < 2) {
+          await m.addColumn(scheduleStates, scheduleStates.step);
+        }
+      },
       beforeOpen: (details) async {
         // Off by default in SQLite; the ON DELETE CASCADE clauses on every
         // child table are inert without it. This must run before any query.

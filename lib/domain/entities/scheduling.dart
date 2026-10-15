@@ -14,6 +14,7 @@ class ScheduleState {
     required this.reps,
     required this.lapses,
     required this.state,
+    this.step = 0,
     this.lastReview,
   });
 
@@ -25,6 +26,12 @@ class ScheduleState {
   final int reps;
   final int lapses;
   final ReviewState state;
+
+  /// Index into the active sub-day step list for [state].
+  ///
+  /// Meaningful while `learning` or `relearning`; ignored otherwise. Persisted
+  /// so a card can resume mid-step across app restarts.
+  final int step;
 }
 
 /// An append-only record of one review.

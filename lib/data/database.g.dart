@@ -1658,6 +1658,16 @@ class $ScheduleStatesTable extends ScheduleStates
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _stepMeta = const VerificationMeta('step');
+  @override
+  late final GeneratedColumn<int> step = GeneratedColumn<int>(
+    'step',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<ReviewState, String> state =
       GeneratedColumn<String>(
@@ -1677,6 +1687,7 @@ class $ScheduleStatesTable extends ScheduleStates
     lastReview,
     reps,
     lapses,
+    step,
     state,
   ];
   @override
@@ -1735,6 +1746,12 @@ class $ScheduleStatesTable extends ScheduleStates
         lapses.isAcceptableOrUnknown(data['lapses']!, _lapsesMeta),
       );
     }
+    if (data.containsKey('step')) {
+      context.handle(
+        _stepMeta,
+        step.isAcceptableOrUnknown(data['step']!, _stepMeta),
+      );
+    }
     return context;
   }
 
@@ -1772,6 +1789,10 @@ class $ScheduleStatesTable extends ScheduleStates
         DriftSqlType.int,
         data['${effectivePrefix}lapses'],
       )!,
+      step: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}step'],
+      )!,
       state: $ScheduleStatesTable.$converterstate.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -1802,6 +1823,15 @@ class ScheduleStateRow extends DataClass
   final int reps;
   final int lapses;
 
+  /// Index into the active sub-day step list for [state].
+  ///
+  /// Meaningful while `learning` or `relearning`, and ignored otherwise. It is
+  /// persisted because the card's next due time depends on *which* step it sits
+  /// on: without it a sub-day step cannot be resumed across app restarts.
+  ///
+  /// Added in schema v2.
+  final int step;
+
   /// Stored as the review-state vocabulary (`new`, `learning`, ...) via
   /// [ReviewStateConverter]; `new` is a Dart keyword and cannot be an enum
   /// member, so `textEnum` cannot express this column.
@@ -1814,6 +1844,7 @@ class ScheduleStateRow extends DataClass
     this.lastReview,
     required this.reps,
     required this.lapses,
+    required this.step,
     required this.state,
   });
   @override
@@ -1828,6 +1859,7 @@ class ScheduleStateRow extends DataClass
     }
     map['reps'] = Variable<int>(reps);
     map['lapses'] = Variable<int>(lapses);
+    map['step'] = Variable<int>(step);
     {
       map['state'] = Variable<String>(
         $ScheduleStatesTable.$converterstate.toSql(state),
@@ -1847,6 +1879,7 @@ class ScheduleStateRow extends DataClass
           : Value(lastReview),
       reps: Value(reps),
       lapses: Value(lapses),
+      step: Value(step),
       state: Value(state),
     );
   }
@@ -1864,6 +1897,7 @@ class ScheduleStateRow extends DataClass
       lastReview: serializer.fromJson<DateTime?>(json['lastReview']),
       reps: serializer.fromJson<int>(json['reps']),
       lapses: serializer.fromJson<int>(json['lapses']),
+      step: serializer.fromJson<int>(json['step']),
       state: serializer.fromJson<ReviewState>(json['state']),
     );
   }
@@ -1878,6 +1912,7 @@ class ScheduleStateRow extends DataClass
       'lastReview': serializer.toJson<DateTime?>(lastReview),
       'reps': serializer.toJson<int>(reps),
       'lapses': serializer.toJson<int>(lapses),
+      'step': serializer.toJson<int>(step),
       'state': serializer.toJson<ReviewState>(state),
     };
   }
@@ -1890,6 +1925,7 @@ class ScheduleStateRow extends DataClass
     Value<DateTime?> lastReview = const Value.absent(),
     int? reps,
     int? lapses,
+    int? step,
     ReviewState? state,
   }) => ScheduleStateRow(
     cardId: cardId ?? this.cardId,
@@ -1899,6 +1935,7 @@ class ScheduleStateRow extends DataClass
     lastReview: lastReview.present ? lastReview.value : this.lastReview,
     reps: reps ?? this.reps,
     lapses: lapses ?? this.lapses,
+    step: step ?? this.step,
     state: state ?? this.state,
   );
   ScheduleStateRow copyWithCompanion(ScheduleStatesCompanion data) {
@@ -1914,6 +1951,7 @@ class ScheduleStateRow extends DataClass
           : this.lastReview,
       reps: data.reps.present ? data.reps.value : this.reps,
       lapses: data.lapses.present ? data.lapses.value : this.lapses,
+      step: data.step.present ? data.step.value : this.step,
       state: data.state.present ? data.state.value : this.state,
     );
   }
@@ -1928,6 +1966,7 @@ class ScheduleStateRow extends DataClass
           ..write('lastReview: $lastReview, ')
           ..write('reps: $reps, ')
           ..write('lapses: $lapses, ')
+          ..write('step: $step, ')
           ..write('state: $state')
           ..write(')'))
         .toString();
@@ -1942,6 +1981,7 @@ class ScheduleStateRow extends DataClass
     lastReview,
     reps,
     lapses,
+    step,
     state,
   );
   @override
@@ -1955,6 +1995,7 @@ class ScheduleStateRow extends DataClass
           other.lastReview == this.lastReview &&
           other.reps == this.reps &&
           other.lapses == this.lapses &&
+          other.step == this.step &&
           other.state == this.state);
 }
 
@@ -1966,6 +2007,7 @@ class ScheduleStatesCompanion extends UpdateCompanion<ScheduleStateRow> {
   final Value<DateTime?> lastReview;
   final Value<int> reps;
   final Value<int> lapses;
+  final Value<int> step;
   final Value<ReviewState> state;
   const ScheduleStatesCompanion({
     this.cardId = const Value.absent(),
@@ -1975,6 +2017,7 @@ class ScheduleStatesCompanion extends UpdateCompanion<ScheduleStateRow> {
     this.lastReview = const Value.absent(),
     this.reps = const Value.absent(),
     this.lapses = const Value.absent(),
+    this.step = const Value.absent(),
     this.state = const Value.absent(),
   });
   ScheduleStatesCompanion.insert({
@@ -1985,6 +2028,7 @@ class ScheduleStatesCompanion extends UpdateCompanion<ScheduleStateRow> {
     this.lastReview = const Value.absent(),
     this.reps = const Value.absent(),
     this.lapses = const Value.absent(),
+    this.step = const Value.absent(),
     this.state = const Value.absent(),
   }) : due = Value(due);
   static Insertable<ScheduleStateRow> custom({
@@ -1995,6 +2039,7 @@ class ScheduleStatesCompanion extends UpdateCompanion<ScheduleStateRow> {
     Expression<DateTime>? lastReview,
     Expression<int>? reps,
     Expression<int>? lapses,
+    Expression<int>? step,
     Expression<String>? state,
   }) {
     return RawValuesInsertable({
@@ -2005,6 +2050,7 @@ class ScheduleStatesCompanion extends UpdateCompanion<ScheduleStateRow> {
       if (lastReview != null) 'last_review': lastReview,
       if (reps != null) 'reps': reps,
       if (lapses != null) 'lapses': lapses,
+      if (step != null) 'step': step,
       if (state != null) 'state': state,
     });
   }
@@ -2017,6 +2063,7 @@ class ScheduleStatesCompanion extends UpdateCompanion<ScheduleStateRow> {
     Value<DateTime?>? lastReview,
     Value<int>? reps,
     Value<int>? lapses,
+    Value<int>? step,
     Value<ReviewState>? state,
   }) {
     return ScheduleStatesCompanion(
@@ -2027,6 +2074,7 @@ class ScheduleStatesCompanion extends UpdateCompanion<ScheduleStateRow> {
       lastReview: lastReview ?? this.lastReview,
       reps: reps ?? this.reps,
       lapses: lapses ?? this.lapses,
+      step: step ?? this.step,
       state: state ?? this.state,
     );
   }
@@ -2055,6 +2103,9 @@ class ScheduleStatesCompanion extends UpdateCompanion<ScheduleStateRow> {
     if (lapses.present) {
       map['lapses'] = Variable<int>(lapses.value);
     }
+    if (step.present) {
+      map['step'] = Variable<int>(step.value);
+    }
     if (state.present) {
       map['state'] = Variable<String>(
         $ScheduleStatesTable.$converterstate.toSql(state.value),
@@ -2073,6 +2124,7 @@ class ScheduleStatesCompanion extends UpdateCompanion<ScheduleStateRow> {
           ..write('lastReview: $lastReview, ')
           ..write('reps: $reps, ')
           ..write('lapses: $lapses, ')
+          ..write('step: $step, ')
           ..write('state: $state')
           ..write(')'))
         .toString();
@@ -4933,6 +4985,7 @@ typedef $$ScheduleStatesTableCreateCompanionBuilder =
       Value<DateTime?> lastReview,
       Value<int> reps,
       Value<int> lapses,
+      Value<int> step,
       Value<ReviewState> state,
     });
 typedef $$ScheduleStatesTableUpdateCompanionBuilder =
@@ -4944,6 +4997,7 @@ typedef $$ScheduleStatesTableUpdateCompanionBuilder =
       Value<DateTime?> lastReview,
       Value<int> reps,
       Value<int> lapses,
+      Value<int> step,
       Value<ReviewState> state,
     });
 
@@ -5010,6 +5064,11 @@ class $$ScheduleStatesTableFilterComposer
 
   ColumnFilters<int> get lapses => $composableBuilder(
     column: $table.lapses,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get step => $composableBuilder(
+    column: $table.step,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5082,6 +5141,11 @@ class $$ScheduleStatesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get step => $composableBuilder(
+    column: $table.step,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get state => $composableBuilder(
     column: $table.state,
     builder: (column) => ColumnOrderings(column),
@@ -5141,6 +5205,9 @@ class $$ScheduleStatesTableAnnotationComposer
 
   GeneratedColumn<int> get lapses =>
       $composableBuilder(column: $table.lapses, builder: (column) => column);
+
+  GeneratedColumn<int> get step =>
+      $composableBuilder(column: $table.step, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<ReviewState, String> get state =>
       $composableBuilder(column: $table.state, builder: (column) => column);
@@ -5206,6 +5273,7 @@ class $$ScheduleStatesTableTableManager
                 Value<DateTime?> lastReview = const Value.absent(),
                 Value<int> reps = const Value.absent(),
                 Value<int> lapses = const Value.absent(),
+                Value<int> step = const Value.absent(),
                 Value<ReviewState> state = const Value.absent(),
               }) => ScheduleStatesCompanion(
                 cardId: cardId,
@@ -5215,6 +5283,7 @@ class $$ScheduleStatesTableTableManager
                 lastReview: lastReview,
                 reps: reps,
                 lapses: lapses,
+                step: step,
                 state: state,
               ),
           createCompanionCallback:
@@ -5226,6 +5295,7 @@ class $$ScheduleStatesTableTableManager
                 Value<DateTime?> lastReview = const Value.absent(),
                 Value<int> reps = const Value.absent(),
                 Value<int> lapses = const Value.absent(),
+                Value<int> step = const Value.absent(),
                 Value<ReviewState> state = const Value.absent(),
               }) => ScheduleStatesCompanion.insert(
                 cardId: cardId,
@@ -5235,6 +5305,7 @@ class $$ScheduleStatesTableTableManager
                 lastReview: lastReview,
                 reps: reps,
                 lapses: lapses,
+                step: step,
                 state: state,
               ),
           withReferenceMapper: (p0) => p0

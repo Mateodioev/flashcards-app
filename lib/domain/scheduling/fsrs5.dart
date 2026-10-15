@@ -174,10 +174,7 @@ class Fsrs5Scheduler {
                 (math.exp((1 - retrievability) * weights[10]) - 1) *
                 hardPenalty *
                 easyBonus);
-    return _round(
-      value.clamp(Fsrs5.stabilityMin, Fsrs5.stabilityMax),
-      8,
-    );
+    return _round(value.clamp(Fsrs5.stabilityMin, Fsrs5.stabilityMax), 8);
   }
 
   /// Stability after a lapse (the card was forgotten).
@@ -191,10 +188,7 @@ class Fsrs5Scheduler {
         _pow(difficulty, -weights[12]) *
         (_pow(stability + 1, weights[13]) - 1) *
         math.exp((1 - retrievability) * weights[14]);
-    return _round(
-      value.clamp(Fsrs5.stabilityMin, Fsrs5.stabilityMax),
-      8,
-    );
+    return _round(value.clamp(Fsrs5.stabilityMin, Fsrs5.stabilityMax), 8);
   }
 
   /// Stability after a same-day review.
@@ -217,10 +211,7 @@ class Fsrs5Scheduler {
     if (grade >= 2 && sinc < 1.0) sinc = 1.0;
 
     final value = stability * sinc;
-    return _round(
-      value.clamp(Fsrs5.stabilityMin, Fsrs5.stabilityMax),
-      8,
-    );
+    return _round(value.clamp(Fsrs5.stabilityMin, Fsrs5.stabilityMax), 8);
   }
 
   /// Advances the memory state by one review.
@@ -255,12 +246,8 @@ class Fsrs5Scheduler {
         r,
       );
       if (enableShortTerm) {
-        final floor =
-            current.stability / math.exp(weights[17] * weights[18]);
-        newStability = _round(
-          floor,
-          8,
-        ).clamp(Fsrs5.stabilityMin, afterFail);
+        final floor = current.stability / math.exp(weights[17] * weights[18]);
+        newStability = _round(floor, 8).clamp(Fsrs5.stabilityMin, afterFail);
       } else {
         newStability = afterFail;
       }

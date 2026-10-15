@@ -168,18 +168,31 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
   | first-review difficulty | `[7.1949, 6.48830527, 5.28243442, 3.22450159]` | exact | ✅ |
   | memory state, short-term **on** | `48.27115294` | `48.27115127` | ✅ |
   | memory state, short-term **off** | `48.065163` | `48.06515389` | ✅ |
-  | interval history | `[0,4,14,44,125,328,0,0,6,14,31,65,130]` | not implemented | ⛔ see T3.6 |
+  | interval history | `[0,4,14,44,125,328,0,0,6,14,31,65,130]` | exact | ✅ |
 
   **The `S^(-0.01)` short-term saturation term was NOT what either draft of the spec said.**
   First draft implied a `w19` slot FSRS-5 does not have; the correction removed the term
   entirely, which missed by `5.7e-3` — a plausible-looking wrong number that throws nothing.
   Solving for the exponent the vector implies gave `0.0100029`, i.e. the clamp floor. Both
   the code and `design.md` now record the corrected form with the evidence table.
-- [ ] **T3.6** Learning-step scheduling (blocks the interval-history vector).
-  The interval-history vector depends on sub-day learning steps (`1m`/`10m`, relearn `10m`),
-  not just the memory math. Reproducing it requires **a persisted step index, and the current
-  `schedule_states` table has no such column** — so this needs a schema migration (v2) plus a
-  spec addition. Not started; not in the original task list.
+- [x] **T3.6** Learning-step scheduling.
+  *Done: `lib/domain/scheduling/scheduler.dart` drives the memory math with `new_`,
+  `learning`, `review` and `relearning` states and configurable sub-day steps.
+  **All five reference vectors now pass**, including the interval history — which reproduced
+  exactly on the first run once the step machine existed.*
+  Two configurations are kept deliberately separate:
+  - `SchedulerConfig.singleStep` — one sub-day step. This is what the canonical vector
+    encodes, because the raw reference algorithm graduates on the first successful learning
+    review. The vector test uses this and nothing else.
+  - `SchedulerConfig.ankiLearning` / `ankiRelearning` — Anki's `1m`→`10m`, relearn `10m`.
+    This is what the app ships, and it changes the sequence *by design*, so it is validated
+    by its own tests rather than by bending the canonical vector.
+  **Schema v2:** `schedule_states.step` added, with a real `onUpgrade` that backfills
+  existing rows to `0`. A migration test seeds a v1 database, upgrades it, and asserts both
+  the column and the backfill. Snapshot committed as `drift_schemas/drift_schema_v2.json`.
+  **Finding:** Drift returns `DateTime`s in **local** time, so an instant survives a
+  round-trip but its representation does not. Tests must compare instants; day-boundary
+  logic (T3.5) must normalise explicitly.
 - [ ] **T3.3** `dueCards(courseId, themeId, now, limit)` with interleaving option.
   *Verification: tests cover due ordering and blocked vs interleaved selection.*
 - [ ] **T3.4** 85% target-band heuristic with hysteresis, marked as a heuristic in code.
