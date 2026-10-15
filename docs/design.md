@@ -118,7 +118,7 @@ Stability, lapse:    S'f = w[11] · D^(−w[12]) · ((S + 1)^w[13] − 1) · e^(
                      with short-term enabled, additionally:
                        next_s_min = S / e^(w[17] · w[18])
                        S' = clamp(next_s_min, S_MIN, S'f)
-Short-term (t == 0): sinc = S^(−w[19]) · e^(w[17] · (G − 3 + w[18]))
+Short-term (t == 0): sinc = S^(−0.01) · e^(w[17] · (G − 3 + w[18]))
                      sinc = max(sinc, 1.0) when G >= 2
                      S' = clamp(S · sinc, S_MIN, S_MAX)
 ```
@@ -167,12 +167,37 @@ that changes **two** distinct code paths:
 2. a **lapse** is followed by an additional clamp: `next_s_min = S / e^(w17·w18)`,
    then `S' = clamp(next_s_min, S_MIN, S'f)`.
 
-The effect is not cosmetic. The same rating sequence with the flag on versus off produces
-different intervals *after the first lapse*, and long-term-only mode is the one that
-matches the classic reference vectors for later reviews. This flag must be **pinned as an
-explicit, named constant** in the Dart port — never left to an implicit default — and the
-test suite must cover both branches. Leaving it unpinned is how a "correct-looking" port
-silently diverges.
+The effect is not cosmetic. The two memory-state vectors differ (48.27115294 vs 48.065163)
+*purely* because of this flag, and it also changes the post-lapse clamp. The
+interval-history vector above is produced with the flag at its reference default —
+**enabled** — so the Dart port must pin it explicitly to that value, never leave it to an
+implicit default, and the test suite must cover both branches. Leaving it unpinned is how a
+"correct-looking" port silently diverges.
+
+### The short-term saturation term (empirically established)
+
+The short-term formula carries an `S^(−0.01)` factor. That `0.01` is **not** a
+weight-vector entry — FSRS-5 has no `w19` slot — it is the parameter-clamp **floor** applied
+to the short-term exponent whenever short-term reviews are enabled.
+
+This was found by running the reference vectors, not by reading prose. Three candidate
+forms were tested against the canonical memory-state vector `48.27115294`:
+
+| Short-term form | Result | Error |
+|---|---|---|
+| `S · e^(w17·(G−3+w18))` (no saturation) | `48.26549258` | `5.7e-3` — fails |
+| `S^(−0.0658)` (FSRS-6 default `w19`) | `48.30315946` | `3.2e-2` — fails |
+| `S^(−0.01)` (clamp floor) | `48.27115127` | `1.7e-6` — **matches** |
+
+Solving analytically for the exponent the vector implies gives `0.0100029`, which is the
+clamp floor to within floating-point noise.
+
+Both errors above are *plausible-looking numbers*. Neither throws, neither looks wrong in a
+UI, and the first is within 0.012% of correct. This is exactly why the reference vectors —
+not prose, and not inspection — are the acceptance gate for T3.2.
+
+The `max(sinc, 1.0)` mask for `G >= 2` still applies: a same-day review must never *reduce*
+stability for Hard, Good or Easy.
 
 ### Reference implementation: port or depend?
 

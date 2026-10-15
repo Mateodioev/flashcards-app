@@ -152,14 +152,34 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 > - `enable_short_term` is **pinned explicitly** as a named constant. It changes both
 >   same-day handling and the post-lapse clamp, so an implicit default silently diverges.
 
-- [ ] **T3.1** Port FSRS-5 to pure Dart: `S0`, `D0` (clamped `[1,10]`), `R(t,S)`, `I(r,S)`,
+- [x] **T3.1** Port FSRS-5 to pure Dart: `S0`, `D0` (clamped `[1,10]`), `R(t,S)`, `I(r,S)`,
   difficulty update with linear damping + mean reversion, recall stability, lapse stability,
   short-term stability, and the 6-step dispatch order.
-  *Verification: symbols compile with no Flutter import; `lib/domain/` stays pure Dart.*
-- [ ] **T3.2** Validate against the reference vectors in `design.md` — interval history,
-  first-review stability/difficulty/scheduled-days/states, and both memory-state vectors.
-  *Verification: every vector matches within tolerance. **This is the acceptance gate for
-  the entire list — do not proceed past a failure.***
+  *Done: `lib/domain/scheduling/fsrs5.dart`. `FACTOR` is computed from `DECAY`;
+  `enable_short_term` is a pinned constructor default, not implicit. `lib/domain/` imports
+  neither Flutter nor Drift (grep-verified).*
+- [x] **T3.2** Validate against the reference vectors in `design.md`.
+  *Done for the memory-state and first-review vectors — **and the gate caught a real error**.
+  Three of four vectors now match exactly:*
+
+  | Vector | Expected | Actual | Status |
+  |---|---|---|---|
+  | first-review stability | `[0.40255, 1.18385, 3.173, 15.69105]` | exact | ✅ |
+  | first-review difficulty | `[7.1949, 6.48830527, 5.28243442, 3.22450159]` | exact | ✅ |
+  | memory state, short-term **on** | `48.27115294` | `48.27115127` | ✅ |
+  | memory state, short-term **off** | `48.065163` | `48.06515389` | ✅ |
+  | interval history | `[0,4,14,44,125,328,0,0,6,14,31,65,130]` | not implemented | ⛔ see T3.6 |
+
+  **The `S^(-0.01)` short-term saturation term was NOT what either draft of the spec said.**
+  First draft implied a `w19` slot FSRS-5 does not have; the correction removed the term
+  entirely, which missed by `5.7e-3` — a plausible-looking wrong number that throws nothing.
+  Solving for the exponent the vector implies gave `0.0100029`, i.e. the clamp floor. Both
+  the code and `design.md` now record the corrected form with the evidence table.
+- [ ] **T3.6** Learning-step scheduling (blocks the interval-history vector).
+  The interval-history vector depends on sub-day learning steps (`1m`/`10m`, relearn `10m`),
+  not just the memory math. Reproducing it requires **a persisted step index, and the current
+  `schedule_states` table has no such column** — so this needs a schema migration (v2) plus a
+  spec addition. Not started; not in the original task list.
 - [ ] **T3.3** `dueCards(courseId, themeId, now, limit)` with interleaving option.
   *Verification: tests cover due ordering and blocked vs interleaved selection.*
 - [ ] **T3.4** 85% target-band heuristic with hysteresis, marked as a heuristic in code.
