@@ -5,6 +5,7 @@ import 'package:flashcards2/domain/entities/card.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
 import 'package:flashcards2/domain/repositories/card_repository.dart';
+import 'package:flashcards2/domain/scheduling/due_queue.dart';
 
 /// Drift-backed [CardRepository].
 ///
@@ -140,6 +141,31 @@ class DriftCardRepository implements CardRepository {
         step: Value(state.step),
       ),
     );
+  }
+
+  @override
+  Future<List<DueEntry>> findDueEntries({
+    required DateTime dueBefore,
+    int? courseId,
+    int? themeId,
+    int? limit,
+  }) async {
+    final rows = await _dao.dueCards(
+      dueBefore: dueBefore,
+      courseId: courseId,
+      themeId: themeId,
+      limit: limit,
+    );
+    return rows
+        .map(
+          (row) => DueEntry(
+            cardId: row.cardId,
+            themeId: row.themeId,
+            courseId: row.courseId,
+            due: row.due,
+          ),
+        )
+        .toList();
   }
 
   Theme _themeToEntity(ThemeRow row) {

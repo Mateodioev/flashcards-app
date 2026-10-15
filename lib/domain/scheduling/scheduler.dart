@@ -50,7 +50,13 @@ class SchedulerConfig {
     this.learningSteps = singleStep,
     this.relearningSteps = singleStep,
     this.fsrs = const Fsrs5Scheduler(),
+    this.dayCutoffHour = defaultDayCutoffHour,
   });
+
+  /// Hour (0-23) at which a new scheduling day begins, in local time.
+  ///
+  /// 4am by default: a review made at 2am still belongs to the previous day.
+  static const int defaultDayCutoffHour = 4;
 
   /// One sub-day step: a new card gets one same-day review, then graduates.
   static const List<Duration> singleStep = <Duration>[Duration(minutes: 1)];
@@ -76,6 +82,7 @@ class SchedulerConfig {
   final List<Duration> learningSteps;
   final List<Duration> relearningSteps;
   final Fsrs5Scheduler fsrs;
+  final int dayCutoffHour;
 }
 
 /// The result of applying one rating.
@@ -110,15 +117,39 @@ class Scheduler {
 
   Fsrs5Scheduler get _fsrs => config.fsrs;
 
-  /// Whole days between [from] and [to], floored.
+  /// Whole days between [from] and [to], honouring the [cutoffHour].
   ///
-  /// Sub-day intervals must floor to `0` so the same-day short-term branch
-  /// fires; using a raw fraction here silently routes same-day reviews through
-  /// the long-term formula.
-  static int elapsedDays(DateTime from, DateTime to) {
-    final minutes = to.difference(from).inMinutes;
-    if (minutes <= 0) return 0;
-    return (minutes / Duration.minutesPerDay).floor();
+  /// "Days" are calendar days shifted by the cutoff, not 24-hour blocks: with a
+  /// 4am cutoff, a review at 2am belongs to the previous day. This matches how
+  /// a learner experiences a day, and it is why a plain
+  /// `difference.inDays` is wrong here.
+  ///
+  /// The canonical reference vectors are unaffected by the cutoff, because
+  /// every interval they schedule lands on an exact multiple of a day.
+  static int elapsedDays(
+    DateTime from,
+    DateTime to, {
+    int cutoffHour = SchedulerConfig.defaultDayCutoffHour,
+  }) {
+    final delta = dayIndex(to, cutoffHour) - dayIndex(from, cutoffHour);
+    return delta < 0 ? 0 : delta;
+  }
+
+  /// The shifted calendar-day number [instant] falls in.
+  ///
+  /// Converted to local time first, so the cutoff means "4am where the learner
+  /// is". The epoch arithmetic is done in UTC purely to avoid DST skew in the
+  /// day *count*; the calendar date itself comes from the shifted local value.
+  static int dayIndex(
+    DateTime instant, [
+    int cutoffHour = SchedulerConfig.defaultDayCutoffHour,
+  ]) {
+    final shifted = instant.toLocal().subtract(Duration(hours: cutoffHour));
+    return DateTime.utc(
+      shifted.year,
+      shifted.month,
+      shifted.day,
+    ).difference(DateTime.utc(1970)).inDays;
   }
 
   /// Applies one rating and returns the card's new position.
@@ -129,7 +160,7 @@ class Scheduler {
   }) {
     final elapsed = card.lastReview == null
         ? 0
-        : elapsedDays(card.lastReview!, now);
+        : elapsedDays(card.lastReview!, now, cutoffHour: config.dayCutoffHour);
 
     final memory = _fsrs.nextMemoryState(
       current: card.memory,

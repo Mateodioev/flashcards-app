@@ -43,6 +43,12 @@ class DriftReviewLogRepository implements ReviewLogRepository {
     return rows.map(_toDomain).toList();
   }
 
+  @override
+  Future<List<ReviewLog>> recent({int? courseId, int limit = 50}) async {
+    final rows = await _dao.recent(courseId: courseId, limit: limit);
+    return rows.map(_toDomain).toList();
+  }
+
   ReviewLog _toDomain(ReviewLogRow row) {
     return ReviewLog(
       id: row.id,

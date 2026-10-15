@@ -1,6 +1,7 @@
 import 'package:flashcards2/domain/entities/card.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
+import 'package:flashcards2/domain/scheduling/due_queue.dart';
 
 /// Persistence boundary for themes and their cards.
 ///
@@ -37,4 +38,15 @@ abstract interface class CardRepository {
   Future<ScheduleState?> findScheduleState(int cardId);
 
   Future<void> upsertScheduleState(ScheduleState state);
+
+  /// Cards due at or before [dueBefore], across one course, one theme, or all.
+  ///
+  /// Only cards that have been reviewed at least once have a schedule row, so
+  /// this is the review queue — not the new-card queue.
+  Future<List<DueEntry>> findDueEntries({
+    required DateTime dueBefore,
+    int? courseId,
+    int? themeId,
+    int? limit,
+  });
 }

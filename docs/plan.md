@@ -193,12 +193,37 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
   **Finding:** Drift returns `DateTime`s in **local** time, so an instant survives a
   round-trip but its representation does not. Tests must compare instants; day-boundary
   logic (T3.5) must normalise explicitly.
-- [ ] **T3.3** `dueCards(courseId, themeId, now, limit)` with interleaving option.
-  *Verification: tests cover due ordering and blocked vs interleaved selection.*
-- [ ] **T3.4** 85% target-band heuristic with hysteresis, marked as a heuristic in code.
-  *Verification: unit tests for widen / hold / tighten branches.*
-- [ ] **T3.5** Timezone and day-boundary handling with a configurable day cutoff.
-  *Verification: tests around midnight and DST boundaries.*
+- [x] **T3.3** `dueCards(courseId, themeId, now, limit)` with interleaving option.
+  *Done. Two pieces, split by concern:*
+  - `CardDao.dueCards` does the SQL — a **two-hop join** (`schedule_states` →
+    `cards` → `themes`; `schedule_states` links to `cards`, **not** to `themes`, which
+    I got wrong on the first attempt). One query, no N+1 walk.
+  - `orderDueCards` (`domain/scheduling/due_queue.dart`) is pure and does the sequencing.
+    `blocked` groups by course then theme; `interleaved` round-robins across themes so
+    adjacent cards come from different themes — the *contrast* is the mechanism, not the
+    shuffling. Deterministic in both modes (no RNG), so sessions are reproducible.
+  *Verified against real SQLite: all four repository tests pass, including one that
+  asserts theme and course resolve through both hops.*
+- [x] **T3.4** 85% target-band heuristic with hysteresis, marked as a heuristic in code.
+  *Done: `domain/scheduling/accuracy_heuristic.dart`. Bands are widen (`≥0.95`),
+  hold, tighten (`≤0.75`), with `insufficient` below a minimum sample so a couple of
+  reviews cannot trigger a change. Only `again` counts as a miss — `hard` is still a
+  successful recall, so honest grading is not punished.
+  **It is labelled a heuristic everywhere it is exposed**, including in its own doc
+  comment, and `AccuracyAdvice.explanation` says so in the text a user would see.
+  It adjusts **new-card intake only**; review intervals stay FSRS's business.*
+- [x] **T3.5** Timezone and day-boundary handling with a configurable day cutoff.
+  *Done. `Scheduler.dayIndex` shifts local time by the cutoff (default 04:00) before
+  taking the calendar date, so a 2am review belongs to the previous day. `elapsedDays`
+  counts shifted calendar days rather than 24-hour blocks.
+  A dedicated test proves a cutoff **cannot** change the canonical interval history,
+  because every interval FSRS schedules lands on an exact multiple of a day — the vectors
+  stay valid regardless of this setting.
+  **Timezone fragility handled:** the cutoff tests construct local `DateTime`s rather than
+  UTC ones, so they do not depend on the runner's zone. The vector tests remain UTC-based
+  because they compare whole-day gaps only.
+  Also recorded from T3.6: Drift returns `DateTime`s in local time, so instants compare
+  correctly but representations do not.*
 
 ## List 4 — Initial test / onboarding
 

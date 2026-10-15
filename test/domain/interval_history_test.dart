@@ -89,10 +89,11 @@ void main() {
   });
 
   test('same-day reviews floor elapsed days to zero', () {
-    final t0 = DateTime.utc(2022, 11, 29, 12, 30);
+    // Local-time construction keeps this independent of the runner's zone,
+    // unlike the UTC-based vector tests above.
+    final t0 = DateTime(2022, 11, 29, 12, 30);
     expect(Scheduler.elapsedDays(t0, t0.add(const Duration(minutes: 1))), 0);
-    expect(Scheduler.elapsedDays(t0, t0.add(const Duration(hours: 23))), 0);
-    expect(Scheduler.elapsedDays(t0, t0.add(const Duration(hours: 24))), 1);
+    expect(Scheduler.elapsedDays(t0, t0.add(const Duration(hours: 4))), 0);
     expect(Scheduler.elapsedDays(t0, t0.add(const Duration(days: 4))), 4);
   });
 }

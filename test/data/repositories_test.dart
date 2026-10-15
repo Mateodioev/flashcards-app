@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flashcards2/data/database.dart';
 import 'package:flashcards2/data/repositories/drift_card_repository.dart';
@@ -310,6 +310,96 @@ void main() {
       expect(updated.themeMode, AppThemeMode.dark);
       expect(updated.dayCutoffHour, 2);
       expect(updated.apiBaseUrl, 'https://api.example.test');
+    });
+  });
+
+  group('due cards (T3.3)', () {
+    /// Seeds two courses, each with one theme and two cards, all scheduled.
+    ///
+    /// The second card of course A is due in the future, and course B exists so
+    /// the course filter has something to exclude.
+    Future<void> seed() async {
+      for (final name in <String>['A', 'B']) {
+        final course = await courses.create(
+          Course(
+            id: 0,
+            name: name,
+            createdAt: DateTime(2022, 12),
+            newCardsPerDay: 20,
+            interleaveMode: InterleaveMode.blocked,
+            archived: false,
+          ),
+        );
+        final theme = await cards.createTheme(
+          Theme(
+            id: 0,
+            courseId: course.id,
+            name: '$name-theme',
+            createdAt: DateTime(2022, 12),
+          ),
+        );
+        for (var i = 0; i < 2; i++) {
+          final card = await cards.createCard(
+            Card(
+              id: 0,
+              themeId: theme.id,
+              front: '$name-$i',
+              back: 'back',
+              source: CardSource.manual,
+              createdAt: DateTime(2022, 12),
+              updatedAt: DateTime(2022, 12),
+            ),
+          );
+          await cards.upsertScheduleState(
+            ScheduleState(
+              cardId: card.id,
+              stability: 1,
+              difficulty: 5,
+              // Only the first card of each theme is due.
+              due: i == 0 ? DateTime(2022, 12, 2) : DateTime(2023),
+              reps: 1,
+              lapses: 0,
+              state: ReviewState.review,
+            ),
+          );
+        }
+      }
+    }
+
+    test('returns only cards due at or before the cutoff', () async {
+      await seed();
+      final due = await cards.findDueEntries(dueBefore: DateTime(2022, 12, 3));
+      expect(due, hasLength(2), reason: 'one due card per course');
+      expect(due, everyElement(isNotNull));
+    });
+
+    test('resolves theme and course through both join hops', () async {
+      await seed();
+      final due = await cards.findDueEntries(dueBefore: DateTime(2022, 12, 3));
+      // If either join hop were wrong these would be null or mismatched.
+      for (final entry in due) {
+        expect(entry.themeId, greaterThan(0));
+        expect(entry.courseId, greaterThan(0));
+        expect(entry.cardId, greaterThan(0));
+      }
+      expect(due.map((e) => e.courseId).toSet(), hasLength(2));
+    });
+
+    test('courseId narrows the queue to one course', () async {
+      await seed();
+      final all = await courses.findAll();
+      final onlyA = await cards.findDueEntries(
+        dueBefore: DateTime(2022, 12, 3),
+        courseId: all.first.id,
+      );
+      expect(onlyA, hasLength(1));
+      expect(onlyA.single.courseId, all.first.id);
+    });
+
+    test('an empty queue is returned rather than throwing', () async {
+      await seed();
+      final due = await cards.findDueEntries(dueBefore: DateTime(2022));
+      expect(due, isEmpty);
     });
   });
 }

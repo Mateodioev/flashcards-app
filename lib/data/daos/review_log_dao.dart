@@ -9,7 +9,7 @@ part 'review_log_dao.g.dart';
 /// There is deliberately no update or delete method. The log is the historical
 /// input a future FSRS weight-optimization pass may read, so mutating it would
 /// silently corrupt that input.
-@DriftAccessor(tables: [ReviewLogs])
+@DriftAccessor(tables: [ReviewLogs, Cards, Themes])
 class ReviewLogDao extends DatabaseAccessor<AppDatabase>
     with _$ReviewLogDaoMixin {
   new(super.attachedDatabase);
@@ -29,4 +29,30 @@ class ReviewLogDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<List<ReviewLogRow>> all() => select(reviewLogs).get();
+
+  /// Most recent reviews first, optionally limited to one course's cards.
+  ///
+  /// The course filter resolves through two hops — theme, then card — as nested
+  /// `IN` subqueries, so it stays a single statement rather than loading card
+  /// ids into Dart first.
+  Future<List<ReviewLogRow>> recent({int? courseId, int limit = 50}) {
+    final query = select(reviewLogs);
+
+    if (courseId != null) {
+      final themeIds = selectOnly(themes)
+        ..addColumns([themes.id])
+        ..where(themes.courseId.equals(courseId));
+
+      final cardIds = selectOnly(cards)
+        ..addColumns([cards.id])
+        ..where(cards.themeId.isInQuery(themeIds));
+
+      query.where((_) => reviewLogs.cardId.isInQuery(cardIds));
+    }
+
+    query
+      ..orderBy([(t) => OrderingTerm.desc(t.reviewedAt)])
+      ..limit(limit);
+    return query.get();
+  }
 }
