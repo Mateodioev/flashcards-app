@@ -89,11 +89,17 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
   deleting it left `flutter test` failing.*
 - [x] **T1.5** CI: `flutter analyze` + `flutter test` on push.
   *Done: `.github/workflows/ci.yml`. Cannot run until a remote exists (T0.2), so it is
-  committed-but-unexercised. Local equivalents verified green.*
+  committed-but-unexercised. Local equivalents verified green. Flutter is pinned to an
+  exact version in the workflow (see T1.6).*
 - [x] **T1.6** Pin the Flutter version for reproducibility.
-  *Done via `puro use stable` → `.puro.json`. **Caveat:** puro also writes `.puro.json`
-  into `.git/info/exclude`, which is local-only and never committed, so the pin will not
-  reach CI or another machine. Listed as an open decision below.*
+  *Resolved: **CI is the authoritative pin.***
+  `puro use stable` writes `.puro.json`, but it also adds that file to
+  `.git/info/exclude`, which is local-only and never committed — so a repo-level pin is not
+  possible without fighting puro. Instead, `.github/workflows/ci.yml` declares an exact
+  `flutter-version: 3.47.7`, so CI cannot drift when the `stable` channel advances.
+  The local environment also runs 3.47.7, so CI and local currently agree.
+  *Maintenance: when the local Flutter is upgraded, update `flutter-version` in the
+  workflow in the same change. Divergence is otherwise silent.*
 
 ## List 2 — Persistence
 
@@ -236,17 +242,14 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## Next step
 
-Execute **T2.1** (Drift tables and schema). Before that, resolve the open decision below.
+Execute **T2.1** (Drift tables and schema).
 
 Do not start List 3 until the FSRS-5 constants are confirmed against the canonical
 implementation — that single fact is the gate for the app's core value.
 
-## Open decisions
+## Resolved decisions
 
-1. **`.puro.json` cannot be committed.** `puro use` writes the version pin *and* adds
-   `.puro.json` to `.git/info/exclude`, which is local-only by design and never travels
-   with the repo. CI (T1.5) checks out with whatever `channel: stable` resolves to, so CI
-   and this machine can silently diverge. Options: (a) add `!.puro.json` to the root
-   `.gitignore` so it is tracked (a local exclude loses to a tracked pattern only if the
-   file is force-added — needs verification), (b) pin the Flutter version in CI explicitly
-   instead, (c) accept the divergence. Not chosen yet.
+1. **Flutter version pinning — resolved.** CI is the authoritative pin:
+   `flutter-version: 3.47.7` in `.github/workflows/ci.yml`. The local `.puro.json` remains
+   machine-local because puro self-excludes it via `.git/info/exclude`. Upgrading Flutter
+   requires updating the workflow in the same change.

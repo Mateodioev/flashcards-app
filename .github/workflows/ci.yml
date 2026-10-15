@@ -9,11 +9,18 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
+      # Flutter is pinned to an exact version so CI cannot drift when the
+      # `stable` channel moves forward. This is deliberate: the local pin lives
+      # in `.puro.json`, but `puro use` adds that file to `.git/info/exclude`,
+      # which is local-only and never committed — so CI is the authoritative pin.
+      #
+      # Keep this in sync with the local environment when it is upgraded.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.47.7
           cache: true
 
       - name: Install dependencies
