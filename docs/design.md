@@ -63,28 +63,133 @@ optimization may read. Review history is never mutated to correct statistics.
 Image bytes live on the filesystem; SQLite stores paths. This keeps the database
 small and makes backup/export tractable.
 
-## Scheduler: native FSRS-5 port
+## Scheduler: FSRS-5 (verified)
 
-FSRS-5 carries 19 parameters (`w0..w18`). The port consists of these components:
+**Verification status: COMPLETE.** The constants and equations below were taken from the
+canonical reference implementations, not from `the_science_of_learning.md` (which supplies
+neither — see *Known gaps*). Sources, read directly:
 
-- Initial stability from the first grade.
-- Initial difficulty from the first grade, clamped to the `[1, 10]` range.
-- Difficulty update with mean reversion toward the initial-difficulty anchor.
-- Retrievability as a power forgetting curve. FSRS-4.5/5 use
-  `R(t, S) = (1 + F·t/S)^(−D)` with `F = 19/81` and `D = 0.5`;
-  **confirm both constants against the canonical implementation before implementing.**
-- Stability increase after a successful recall.
-- Stability after a lapse.
-- Same-day (short-term) stability update, which is the FSRS-5 addition over FSRS-4.5.
+- `open-spaced-repetition/awesome-fsrs` wiki, *The Algorithm*
+- `open-spaced-repetition/ts-fsrs` — `packages/fsrs/src/algorithm.ts`, `src/constant.ts`
+- `open-spaced-repetition/fsrs-rs` — `src/inference.rs`
+- Cross-checked against an independent engineering write-up of the same curve
 
-**Implementation rule:** port from the canonical reference implementation and validate
-against its published reference vectors. Do **not** reconstruct the update equations
-from the source treatise — they are not stated there (see *Known gaps* below).
+Do not edit these values from memory. Re-verify against those sources if they must change.
 
-Source document contradiction to resolve explicitly: `:721` gives Ebbinghaus
-exponential decay `R(t) = e^(−t/S)`, while `:781` gives the FSRS power curve. These are
-different models and stability does not mean the same thing in each. **This design uses
-the power curve**, consistently, everywhere.
+### Constants
+
+| Constant | Value | Note |
+|---|---|---|
+| `DECAY` | `-0.5` | FSRS-5 fixed decay. (FSRS-6 makes it trainable via `w20`.) |
+| `FACTOR` | `0.9^(1/DECAY) − 1` = `19/81` ≈ `0.2345679012` | **computed, never hardcoded** |
+| `S_MIN` / `S_MAX` | `0.001` / `36500.0` | stability clamp |
+| `maximum_interval` | `36500` days | interval ceiling |
+| `request_retention` | `0.9` | default target |
+| fuzzing | **disabled** | determinism: required for reproducible tests |
+| `enable_short_term` | **pinned explicitly** | see the trap below |
+
+`FACTOR` is derived, not literal: `factor = exp((1/decay) · ln 0.9) − 1` where `decay` is
+negative. It is defined so that `R(S, S) = 0.9` — an interval equal to stability means 90%
+predicted recall, by construction. Writing `0.2346` as a literal decouples the two
+constants and silently breaks that identity.
+
+### Equations
+
+Grades are 1-indexed: `1 = Again, 2 = Hard, 3 = Good, 4 = Easy`.
+`R` in the stability formulas is the retrievability *at the time of review*.
+
+```
+Retrievability:      R(t, S) = (1 + FACTOR · t / S) ^ DECAY
+Interval:            I(r, S) = (S / FACTOR) · (r ^ (1 / DECAY) − 1)
+                     interval = clamp(round(S · intervalModifier), 1, maximum_interval)
+Initial stability:   S0(G) = max(w[G−1], 0.1)
+Initial difficulty:  D0(G) = w[4] − e^(w[5] · (G − 1)) + 1     # clamped to [1,10] at use site
+Difficulty update:   delta_d = −w[6] · (G − 3)
+                     linear_damping(delta_d, D) = delta_d · (10 − D) / 9
+                     next_d = D + linear_damping(delta_d, D)
+                     D' = clamp(w[7] · D0(4) + (1 − w[7]) · next_d, 1, 10)
+Stability, recall:   S'r = S · (1 + e^w[8] · (11 − D) · S^(−w[9]) · (e^((1−R)·w[10]) − 1)
+                                        · hard_penalty · easy_bound)
+                     hard_penalty = w[15] if G == 2 else 1
+                     easy_bound   = w[16] if G == 4 else 1
+                     clamped to [S_MIN, S_MAX]
+Stability, lapse:    S'f = w[11] · D^(−w[12]) · ((S + 1)^w[13] − 1) · e^((1−R)·w[14])
+                     clamped to [S_MIN, S_MAX]
+                     with short-term enabled, additionally:
+                       next_s_min = S / e^(w[17] · w[18])
+                       S' = clamp(next_s_min, S_MIN, S'f)
+Short-term (t == 0): sinc = S^(−w[19]) · e^(w[17] · (G − 3 + w[18]))
+                     sinc = max(sinc, 1.0) when G >= 2
+                     S' = clamp(S · sinc, S_MIN, S_MAX)
+```
+
+Dispatch order in the state transition, which the reference implementation gates in this
+exact sequence — order matters:
+
+1. `t < 0` → error. `G` outside `0..4` → error.
+2. No prior memory state (`D == 0 && S == 0`) → initialise, clamped to `[1, 10]`.
+3. `G == 0` → state unchanged (no grade recorded).
+4. `t == 0 && enable_short_term` → short-term formula.
+5. `G == 1` → lapse formula.
+6. otherwise → recall formula.
+
+### Default weights (19, `w0..w18`)
+
+```
+[0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575,
+ 0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621]
+```
+
+### Reference vectors — the acceptance gate for T3.2
+
+A port is correct **only** if it reproduces these. Taken from the canonical FSRS-5 suite.
+
+- **Interval history** — ratings `[G,G,G,G,G,G,A,A,G,G,G,G,G]`:
+  `[0, 4, 14, 44, 125, 328, 0, 0, 6, 14, 31, 65, 130]`
+- **First review of a new card**, all four grades in order:
+  - stability `[0.40255, 1.18385, 3.173, 15.69105]`
+  - difficulty `[7.1949, 6.48830527, 5.28243442, 3.22450159]`
+  - scheduled days `[0, 0, 0, 16]`
+  - states `[Learning, Learning, Learning, Review]`
+- **Memory state** after `[A,G,G,G,G,G]` at intervals `[0,0,1,3,8,21]`:
+  - short-term enabled: stability `48.27115294`, difficulty `7.10441712`
+  - short-term disabled: stability `48.065163`, difficulty `7.10441712`
+
+The difficulty vector also validates `D0(G)` independently: `D0(1) = w4 = 7.1949`,
+`D0(3) = 5.2824…`, `D0(4) = 3.2245…` — all three match. `S0(G) = w[G−1]` matches directly.
+
+### The `enable_short_term` trap (verified, not theoretical)
+
+FSRS-5 as implemented by the reference suite carries a flag, defaulting to **enabled**,
+that changes **two** distinct code paths:
+
+1. same-day reviews use the short-term stability formula; and
+2. a **lapse** is followed by an additional clamp: `next_s_min = S / e^(w17·w18)`,
+   then `S' = clamp(next_s_min, S_MIN, S'f)`.
+
+The effect is not cosmetic. The same rating sequence with the flag on versus off produces
+different intervals *after the first lapse*, and long-term-only mode is the one that
+matches the classic reference vectors for later reviews. This flag must be **pinned as an
+explicit, named constant** in the Dart port — never left to an implicit default — and the
+test suite must cover both branches. Leaving it unpinned is how a "correct-looking" port
+silently diverges.
+
+### Reference implementation: port or depend?
+
+An official Dart package exists: `fsrs` **2.0.1** (`open-spaced-repetition/dart-fsrs`,
+65 stars, not archived, 5 open issues, last pushed **2025-06-20**).
+
+It is **not** a drop-in for this design:
+
+- Its changelog says `2.0.0 → FSRS-6`. It bundles FSRS-6 default weights and does not
+  contain the FSRS-5 vector `0.40255`.
+- Its own interval-history test expects `[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40]`,
+  which **diverges** from the canonical FSRS-5 vector `[0, 4, 14, 44, 125, 328, 0, 0, 6, 14, 31, 65, 130]`
+  from the 4th element onward. Whether that is the FSRS-6 curve or a divergence in its
+  post-lapse handling was **not** established.
+
+So: depending on it would mean adopting FSRS-6, not FSRS-5, and accepting unverified
+vector behaviour. This is an open decision — see `plan.md`.
 
 ### Target accuracy band
 
@@ -213,8 +318,8 @@ LaTeX on dark backgrounds is a specific contrast risk and needs golden tests.
 
 | Gap | Source | Handling |
 |---|---|---|
-| FSRS update equation and constants absent | `:781-788` | Port canonical FSRS-5; validate against reference vectors |
-| Exponential vs power decay conflict | `:721` vs `:781` | Use power curve only |
+| FSRS update equation and constants absent | `:781-788` | **Resolved.** Constants and equations verified against the canonical reference implementations and written into this document. The treatise was never usable as a spec here. |
+| Exponential vs power decay conflict | `:721` vs `:781` | Use power curve only (`DECAY = −0.5`). The treatise's exponential form is not FSRS. |
 | 85% rule has no scheduling mechanism | `:1159`, `:1179` | Hysteresis band, labelled a heuristic |
 | Onboarding measures neither prior knowledge nor forgetting rate | `:1102-1112` | Per-course prior-knowledge probe added |
 | Two conflicting onboarding models | `:1101` vs `:1044-1047` | Adopt the short audit |

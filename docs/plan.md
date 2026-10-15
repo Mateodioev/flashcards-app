@@ -143,15 +143,23 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## List 3 — Scheduler (highest-risk component)
 
-- [ ] **T3.1** Port FSRS-5 to pure Dart: initial stability, initial difficulty (clamped
-  `[1,10]`), difficulty update with mean reversion, retrievability, stability increase,
-  stability after lapse, same-day update.
-  **Confirm `F = 19/81` and `D = 0.5` against the canonical implementation before writing
-  the equations.** Do not reconstruct them from `the_science_of_learning.md`.
-  *Verification: symbols compile with no Flutter import.*
-- [ ] **T3.2** Validate against published FSRS reference vectors.
-  *Verification: all reference vectors match within tolerance — this is the acceptance gate
-  for the whole list; do not proceed past a failure.*
+> **GATE CLEARED.** The FSRS-5 constants and equations were verified against the canonical
+> reference implementations and written into `design.md` → *Scheduler: FSRS-5 (verified)*.
+> Do not re-derive them from `the_science_of_learning.md`; it supplies neither.
+>
+> Two things must be honoured by every task below:
+> - `FACTOR` is **computed** from `DECAY` (`0.9^(1/DECAY) − 1`), never written as `0.2346`.
+> - `enable_short_term` is **pinned explicitly** as a named constant. It changes both
+>   same-day handling and the post-lapse clamp, so an implicit default silently diverges.
+
+- [ ] **T3.1** Port FSRS-5 to pure Dart: `S0`, `D0` (clamped `[1,10]`), `R(t,S)`, `I(r,S)`,
+  difficulty update with linear damping + mean reversion, recall stability, lapse stability,
+  short-term stability, and the 6-step dispatch order.
+  *Verification: symbols compile with no Flutter import; `lib/domain/` stays pure Dart.*
+- [ ] **T3.2** Validate against the reference vectors in `design.md` — interval history,
+  first-review stability/difficulty/scheduled-days/states, and both memory-state vectors.
+  *Verification: every vector matches within tolerance. **This is the acceptance gate for
+  the entire list — do not proceed past a failure.***
 - [ ] **T3.3** `dueCards(courseId, themeId, now, limit)` with interleaving option.
   *Verification: tests cover due ordering and blocked vs interleaved selection.*
 - [ ] **T3.4** 85% target-band heuristic with hysteresis, marked as a heuristic in code.
@@ -277,3 +285,14 @@ implementation — that single fact is the gate for the app's core value.
    `flutter-version: 3.47.7` in `.github/workflows/ci.yml`. The local `.puro.json` remains
    machine-local because puro self-excludes it via `.git/info/exclude`. Upgrading Flutter
    requires updating the workflow in the same change.
+
+## Open decisions
+
+1. **FSRS-5: hand-port vs. the official Dart `fsrs` package.** Verification found an
+   official package (`fsrs` 2.0.1, `open-spaced-repetition/dart-fsrs`, 65 stars, not
+   archived, last pushed 2025-06-20). It is **not** a drop-in: its changelog says 2.0.0 is
+   FSRS-6, it does not contain the FSRS-5 weight `0.40255`, and its own interval-history
+   test expects `[0,4,14,45,135,372,0,0,2,5,10,20,40]` which **diverges** from the canonical
+   FSRS-5 vector `[0,4,14,44,125,328,0,0,6,14,31,65,130]` from the 4th element onward.
+   Depending on it means adopting FSRS-6, not FSRS-5, with unverified vector behaviour.
+   Not chosen yet — T3.1 is blocked on this choice.
