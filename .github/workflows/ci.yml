@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'docs/**', 'feat/**']
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Yellow-flag standard: analyze must be fully clean, with the
+      # very_good_analysis ruleset at full strength. Do not add ignores here.
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test

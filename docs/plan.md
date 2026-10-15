@@ -66,15 +66,34 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
   were stageable.
   *Done. Gate verified under a real build: `flutter build apk --debug` succeeded, `build/`
   and `.dart_tool/` both exist, and neither is stageable. 27 source files track; 0 artifacts.*
-- [ ] **T1.2** Add dependencies: `drift`, `sqflite`, `riverpod`, `freezed`, `dio`,
-  `flutter_secure_storage`, `flutter_math_fork`, `image_picker`.
-  *Verification: `flutter pub get` clean; no `flutter_tex` in `pubspec.yaml`.*
-- [ ] **T1.3** `very_good_analysis` + strict `analysis_options.yaml`.
-  *Verification: `flutter analyze` exits 0 with zero infos.*
-- [ ] **T1.4** Folder skeleton `data/ domain/ presentation/ core/`.
-  *Verification: directories exist and are declared in the lint config.*
-- [ ] **T1.5** CI: `flutter analyze` + `flutter test` on push.
-  *Verification: pipeline runs green on the bootstrap commit.*
+- [x] **T1.2** Add dependencies.
+  *Done, with two corrections against the original plan:*
+  - **`sqflite` dropped in favour of `drift_flutter` + `path_provider`.** Drift's current
+    setup guide uses `drift_flutter`; `sqflite` is not the recommended path.
+    `sqlite3_flutter_libs` is now **EOL** and is pulled in transitively as a shim — it must
+    not be added explicitly.
+  - **`riverpod_lint` + `custom_lint` are mutually exclusive** in this dependency graph
+    (analyzer / `_macros` conflict through `drift_dev`). `pub add` failed atomically;
+    both were dropped. Riverpod still works without its linter.
+  - `sqlite3` resolves to 3.5.2 rather than 3.7.1 because `objective_c` pins `hooks`
+    below what 3.7.1 needs. Benign, and `pub upgrade sqlite3` confirms it cannot move.
+- [x] **T1.3** `very_good_analysis` + strict `analysis_options.yaml`.
+  *Done at full strength (yellow-flag standard, as requested). 3 real findings found by
+  `dart fix`/`flutter analyze` were **fixed in code, not suppressed**. One narrow, reasoned
+  exception: `public_member_api_docs: false`. Generated files excluded.
+  Note: `flutter pub remove flutter_lints` rewrites `analysis_options.yaml`, adding
+  `build/**` and `android/**` excludes — verify the file after any `pub remove`.*
+- [x] **T1.4** Folder skeleton `data/ domain/ presentation/ core/`.
+  *Done. Note the template `lib/main.dart` counter demo was replaced with a real app shell
+  (Riverpod `ProviderScope`, Material 3 light/dark) plus `test/app_test.dart`, because
+  deleting it left `flutter test` failing.*
+- [x] **T1.5** CI: `flutter analyze` + `flutter test` on push.
+  *Done: `.github/workflows/ci.yml`. Cannot run until a remote exists (T0.2), so it is
+  committed-but-unexercised. Local equivalents verified green.*
+- [x] **T1.6** Pin the Flutter version for reproducibility.
+  *Done via `puro use stable` → `.puro.json`. **Caveat:** puro also writes `.puro.json`
+  into `.git/info/exclude`, which is local-only and never committed, so the pin will not
+  reach CI or another machine. Listed as an open decision below.*
 
 ## List 2 — Persistence
 
@@ -217,8 +236,17 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## Next step
 
-Execute **T1.1** (Android-only scaffold), then **T1.1a** (merge Flutter's `.gitignore`
-patterns into the root file) **before `flutter pub get`/`flutter build`**, then **T2.1**.
+Execute **T2.1** (Drift tables and schema). Before that, resolve the open decision below.
 
 Do not start List 3 until the FSRS-5 constants are confirmed against the canonical
 implementation — that single fact is the gate for the app's core value.
+
+## Open decisions
+
+1. **`.puro.json` cannot be committed.** `puro use` writes the version pin *and* adds
+   `.puro.json` to `.git/info/exclude`, which is local-only by design and never travels
+   with the repo. CI (T1.5) checks out with whatever `channel: stable` resolves to, so CI
+   and this machine can silently diverge. Options: (a) add `!.puro.json` to the root
+   `.gitignore` so it is tracked (a local exclude loses to a tracked pattern only if the
+   file is force-added — needs verification), (b) pin the Flutter version in CI explicitly
+   instead, (c) accept the divergence. Not chosen yet.
