@@ -52,20 +52,20 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## List 1 — Foundation
 
-- [ ] **T1.1** Create the project **Android only**:
-  `flutter create --platforms=android --org <org> --project-name <name> .`
+- [x] **T1.1** Create the project **Android only**:
+  `flutter create --platforms=android --org dev.flashcards2 --project-name flashcards2 .`
   Do not scaffold iOS, web, or desktop.
-  *Verification: `android/` exists; `ios/ web/ linux/ windows/ macos/` do not.*
-- [ ] **T1.1a** **Merge Flutter's `.gitignore` patterns into the existing root
-  `.gitignore` — do not assume `flutter create` does it.**
+  *Done. `android/` present; `ios/ web/ linux/ windows/ macos/` absent. `applicationId` =
+  `dev.flashcards2.flashcards2` (matches the `dev.<name>.<name>` convention from the
+  sibling `neuronutri` project). Note: `flutter create` also ran `pub get` automatically.*
+- [x] **T1.1a** **Merge Flutter's `.gitignore` patterns into the existing root
+  `.gitignore`.**
   `flutter create` **preserves an existing `.gitignore` verbatim** and silently writes
-  none of its own patterns (verified against Flutter's `app/.gitignore.tmpl`). Because the
-  repo already has a root `.gitignore`, `.dart_tool/` and `/build/` would end up tracked.
-  Keep the existing lines (`/.idea/`, `/.atl/`, `*.cache`) and add the Flutter template
-  patterns on top.
-  *Verification: `git status --short` shows no `.dart_tool/`, `/build/`, or `*.iml` entries
-  after `flutter pub get` and a `flutter build apk --debug`. Do not proceed to T1.2 until
-  this passes — build artifacts committed once are painful to remove from history.*
+  none of its own patterns. Confirmed on this repo: after `flutter create`, the root
+  `.gitignore` was still 3 lines while `.dart_tool/` already existed and 5 artifact paths
+  were stageable.
+  *Done. Gate verified under a real build: `flutter build apk --debug` succeeded, `build/`
+  and `.dart_tool/` both exist, and neither is stageable. 27 source files track; 0 artifacts.*
 - [ ] **T1.2** Add dependencies: `drift`, `sqflite`, `riverpod`, `freezed`, `dio`,
   `flutter_secure_storage`, `flutter_math_fork`, `image_picker`.
   *Verification: `flutter pub get` clean; no `flutter_tex` in `pubspec.yaml`.*
