@@ -103,15 +103,39 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## List 2 — Persistence
 
-- [ ] **T2.1** Drift tables: `courses`, `themes`, `cards`, `schedule_states`,
-  `review_logs`, `app_settings`.
-  *Verification: generated code compiles; schema dump committed.*
-- [ ] **T2.2** Migration v1 + schema export test.
-  *Verification: migration test passes from empty DB.*
-- [ ] **T2.3** DAOs: `CourseDao`, `CardDao`, `ReviewLogDao`, `SettingsDao`.
-  *Verification: in-memory DB tests cover create/read/update/delete each.*
-- [ ] **T2.4** Repository interfaces in `domain/`, Drift implementations in `data/`.
-  *Verification: `domain/` imports neither Flutter nor Drift.*
+- [x] **T2.1** Drift tables: `courses`, `themes`, `cards`, `card_images`,
+  `schedule_states`, `review_logs`, `app_settings`.
+  *Done. All seven tables exist with cascade FKs, `PRAGMA foreign_keys = ON`, and
+  `textEnum` columns. `card_images` stores filesystem paths — verified no BLOB column
+  exists anywhere. **No FSRS math** leaked into the data layer (grep-checked; the only
+  matches are comments documenting the boundary).*
+  Two real API conflicts found and resolved:
+  - **`new` is a reserved Dart keyword**, so no enum member can be named `new` and Drift's
+    `textEnum` cannot express `ReviewState`. Confirmed independently (`expected_identifier_but_got_keyword`).
+    Resolved with a hand-written `ReviewStateConverter`; a raw-SQL test asserts the stored
+    value is literally `new`, so the Dart-side `new_` workaround never reaches the database.
+  - **Name collisions with Drift's runtime API**: the `AppSettings` table class clashed with
+    the domain entity, and DAO methods named `update`/`delete` clashed with
+    `DatabaseConnectionUser.update`/`delete`. Resolved via `@DataClassName` suffixes and
+    domain-specific DAO method names.
+- [x] **T2.2** Migration v1 + schema export test.
+  *Done. `schemaVersion = 1` with an explicit `MigrationStrategy`. Snapshot committed at
+  `drift_schemas/drift_schema_v1.json`, migration helpers in `test/generated_migrations/`.
+  Tests assert `GeneratedHelper.versions == [1]` and that a fresh database matches the
+  committed snapshot via `validateDatabaseSchema()`.*
+  **Deviation (verified, keep it):** `dart run drift_dev schema generate` **must** be passed
+  `--data-classes`. Flagless output emits raw `with TableInfo` (no type arguments), which
+  `strict-raw-types: true` rejects — reproduced: 7 `strict_raw_type` warnings, `flutter analyze`
+  exits 1. Drift's generated `// ignore_for_file: type=lint` header suppresses linter rules
+  only, not analyzer warnings. The correct command is:
+  `dart run drift_dev schema generate --data-classes drift_schemas/ test/generated_migrations/`
+- [x] **T2.3** DAOs: `CourseDao`, `CardDao`, `ReviewLogDao`, `SettingsDao`.
+  *Done — 4 DAOs with in-memory tests covering create/read/update/delete.*
+- [x] **T2.4** Repository interfaces in `domain/`, Drift implementations in `data/`.
+  *Done, and the constraint holds: grep confirms `lib/domain/` imports neither Drift nor
+  Flutter.*
+  Note: `AppDatabase` must import the domain enums and `ReviewStateConverter` directly,
+  because `database.g.dart` is a `part of` the library and references them.*
 - [ ] **T2.5** Plain-text (Markdown) deck import.
   *Verification: fixture file imports to expected card count.*
 - [ ] **T2.6** Image storage convention: bytes on filesystem, paths in SQLite.
