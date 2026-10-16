@@ -526,7 +526,9 @@ Two consequences worth recording:
   name, version, and build from `package_info_plus` at runtime, so the string
   can never drift from pubspec — a widget test with `setMockInitialValues`
   asserts exactly that, and fails if the string is hardcoded (verified by
-  sabotage).
+  sabotage). *Review: granted, readability+reliability lenses, approved
+  (2f8528b); the only advisory findings were a dead import and an obscure
+  comment, both removed in 5ee7757.*
 - [ ] **T10.5** Release build and signing.
 
 ---
