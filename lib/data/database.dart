@@ -47,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
   static const int defaultNewCardsPerDay = kDefaultNewCardsPerDay;
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -60,6 +60,13 @@ class AppDatabase extends _$AppDatabase {
         // step index was never recorded.
         if (from < 2) {
           await m.addColumn(scheduleStates, scheduleStates.step);
+        }
+        // v3 added the onboarding outputs. `memory_span` stays null for an
+        // existing install, which correctly means "onboarding has not run";
+        // writing a default span would fabricate a measurement.
+        if (from < 3) {
+          await m.addColumn(appSettings, appSettings.memorySpan);
+          await m.addColumn(appSettings, appSettings.forcedGenerationBarrier);
         }
       },
       beforeOpen: (details) async {

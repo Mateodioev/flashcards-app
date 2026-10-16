@@ -274,26 +274,73 @@ void main() {
     expect(await db.appSettings.select().get(), hasLength(1));
   });
 
-  test('schema version is 2 and the migration strategy is explicit', () async {
-    expect(db.schemaVersion, 2);
+  test('schema version is 3 and the migration strategy is explicit', () async {
+    expect(db.schemaVersion, 3);
     expect(db.migration.beforeOpen, isNotNull);
     expect(db.migration.onUpgrade, isNotNull);
-    expect(GeneratedHelper.versions, [1, 2]);
+    expect(GeneratedHelper.versions, [1, 2, 3]);
   });
 
-  test('a fresh database matches the committed v2 snapshot', () async {
+  test('a fresh database matches the committed v3 snapshot', () async {
     // `GeneratedHelper` is generated from the committed
-    // `drift_schemas/drift_schema_v2.json`. Opening a database from that
+    // `drift_schemas/drift_schema_v3.json`. Opening a database from that
     // snapshot and validating it compares the *snapshot* against the schema
     // the table declarations generate from scratch — so this fails if the
     // committed JSON and the Drift tables ever drift apart.
     final verifier = SchemaVerifier(GeneratedHelper());
-    final schema = await verifier.schemaAt(2);
+    final schema = await verifier.schemaAt(3);
     final opened = AppDatabase(schema.newConnection());
 
     await opened.validateDatabaseSchema();
 
     await opened.close();
+  });
+
+  test('migrating v1 to v3 carries every added column', () async {
+    // Walks the full chain, not just the newest hop: an install that skipped a
+    // release must still land on the current schema.
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(1);
+    final old = AppDatabase(schema.newConnection());
+
+    final courseId = await old
+        .into(old.courses)
+        .insert(CoursesCompanion.insert(name: 'Course'));
+    final themeId = await old
+        .into(old.themes)
+        .insert(ThemesCompanion.insert(courseId: courseId, name: 'Theme'));
+    final cardId = await old
+        .into(old.cards)
+        .insert(CardsCompanion.insert(themeId: themeId, front: 'a', back: 'b'));
+    await old
+        .into(old.scheduleStates)
+        .insert(
+          ScheduleStatesCompanion.insert(
+            cardId: Value(cardId),
+            due: DateTime(2022, 12),
+          ),
+        );
+    await old.close();
+
+    final upgraded = AppDatabase(schema.newConnection());
+
+    final schedule = await (upgraded.select(
+      upgraded.scheduleStates,
+    )..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
+    expect(schedule, isNotNull);
+    expect(schedule!.step, 0, reason: 'v2 column defaults to 0');
+
+    final settings = await upgraded
+        .select(upgraded.appSettings)
+        .getSingleOrNull();
+    // The settings row may not exist yet on a v1 database; if it does, the v3
+    // columns must be present and must not fabricate a measurement.
+    if (settings != null) {
+      expect(settings.memorySpan, isNull);
+      expect(settings.forcedGenerationBarrier, isFalse);
+    }
+
+    await upgraded.close();
   });
 
   test('migrating a v1 database to v2 adds the step column', () async {

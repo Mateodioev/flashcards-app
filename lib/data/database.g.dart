@@ -2807,6 +2807,32 @@ class $AppSettingsTable extends AppSettings
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _memorySpanMeta = const VerificationMeta(
+    'memorySpan',
+  );
+  @override
+  late final GeneratedColumn<int> memorySpan = GeneratedColumn<int>(
+    'memory_span',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _forcedGenerationBarrierMeta =
+      const VerificationMeta('forcedGenerationBarrier');
+  @override
+  late final GeneratedColumn<bool> forcedGenerationBarrier =
+      GeneratedColumn<bool>(
+        'forced_generation_barrier',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("forced_generation_barrier" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _apiBaseUrlMeta = const VerificationMeta(
     'apiBaseUrl',
   );
@@ -2847,6 +2873,8 @@ class $AppSettingsTable extends AppSettings
     themeMode,
     dayCutoffHour,
     onboardingCompletedAt,
+    memorySpan,
+    forcedGenerationBarrier,
     apiBaseUrl,
     apiModelId,
     apiConfiguredAt,
@@ -2881,6 +2909,21 @@ class $AppSettingsTable extends AppSettings
         onboardingCompletedAt.isAcceptableOrUnknown(
           data['onboarding_completed_at']!,
           _onboardingCompletedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('memory_span')) {
+      context.handle(
+        _memorySpanMeta,
+        memorySpan.isAcceptableOrUnknown(data['memory_span']!, _memorySpanMeta),
+      );
+    }
+    if (data.containsKey('forced_generation_barrier')) {
+      context.handle(
+        _forcedGenerationBarrierMeta,
+        forcedGenerationBarrier.isAcceptableOrUnknown(
+          data['forced_generation_barrier']!,
+          _forcedGenerationBarrierMeta,
         ),
       );
     }
@@ -2938,6 +2981,14 @@ class $AppSettingsTable extends AppSettings
         DriftSqlType.dateTime,
         data['${effectivePrefix}onboarding_completed_at'],
       ),
+      memorySpan: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}memory_span'],
+      ),
+      forcedGenerationBarrier: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}forced_generation_barrier'],
+      )!,
       apiBaseUrl: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}api_base_url'],
@@ -2970,6 +3021,23 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
   final int dayCutoffHour;
   final DateTime? onboardingCompletedAt;
 
+  /// Working-memory span measured by onboarding.
+  ///
+  /// Null when onboarding has never been run. `newCardsPerDay` and the content
+  /// chunk limit are derived from this rather than stored alongside it, so there
+  /// is exactly one source of truth for the learner's capacity estimate.
+  ///
+  /// Added in schema v3.
+  final int? memorySpan;
+
+  /// Whether the Forced Generation Barrier defaults to on.
+  ///
+  /// Set from the calibration probe. An overconfident learner gets the barrier,
+  /// because the fluency illusion is the specific failure it exists to defeat.
+  ///
+  /// Added in schema v3.
+  final bool forcedGenerationBarrier;
+
   /// AI base URL. The API **key** never touches this database — it lives in
   /// `flutter_secure_storage`.
   final String? apiBaseUrl;
@@ -2980,6 +3048,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     required this.themeMode,
     required this.dayCutoffHour,
     this.onboardingCompletedAt,
+    this.memorySpan,
+    required this.forcedGenerationBarrier,
     this.apiBaseUrl,
     this.apiModelId,
     this.apiConfiguredAt,
@@ -2999,6 +3069,10 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
         onboardingCompletedAt,
       );
     }
+    if (!nullToAbsent || memorySpan != null) {
+      map['memory_span'] = Variable<int>(memorySpan);
+    }
+    map['forced_generation_barrier'] = Variable<bool>(forcedGenerationBarrier);
     if (!nullToAbsent || apiBaseUrl != null) {
       map['api_base_url'] = Variable<String>(apiBaseUrl);
     }
@@ -3019,6 +3093,10 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       onboardingCompletedAt: onboardingCompletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(onboardingCompletedAt),
+      memorySpan: memorySpan == null && nullToAbsent
+          ? const Value.absent()
+          : Value(memorySpan),
+      forcedGenerationBarrier: Value(forcedGenerationBarrier),
       apiBaseUrl: apiBaseUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(apiBaseUrl),
@@ -3045,6 +3123,10 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       onboardingCompletedAt: serializer.fromJson<DateTime?>(
         json['onboardingCompletedAt'],
       ),
+      memorySpan: serializer.fromJson<int?>(json['memorySpan']),
+      forcedGenerationBarrier: serializer.fromJson<bool>(
+        json['forcedGenerationBarrier'],
+      ),
       apiBaseUrl: serializer.fromJson<String?>(json['apiBaseUrl']),
       apiModelId: serializer.fromJson<String?>(json['apiModelId']),
       apiConfiguredAt: serializer.fromJson<DateTime?>(json['apiConfiguredAt']),
@@ -3062,6 +3144,10 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       'onboardingCompletedAt': serializer.toJson<DateTime?>(
         onboardingCompletedAt,
       ),
+      'memorySpan': serializer.toJson<int?>(memorySpan),
+      'forcedGenerationBarrier': serializer.toJson<bool>(
+        forcedGenerationBarrier,
+      ),
       'apiBaseUrl': serializer.toJson<String?>(apiBaseUrl),
       'apiModelId': serializer.toJson<String?>(apiModelId),
       'apiConfiguredAt': serializer.toJson<DateTime?>(apiConfiguredAt),
@@ -3073,6 +3159,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     AppThemeMode? themeMode,
     int? dayCutoffHour,
     Value<DateTime?> onboardingCompletedAt = const Value.absent(),
+    Value<int?> memorySpan = const Value.absent(),
+    bool? forcedGenerationBarrier,
     Value<String?> apiBaseUrl = const Value.absent(),
     Value<String?> apiModelId = const Value.absent(),
     Value<DateTime?> apiConfiguredAt = const Value.absent(),
@@ -3083,6 +3171,9 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     onboardingCompletedAt: onboardingCompletedAt.present
         ? onboardingCompletedAt.value
         : this.onboardingCompletedAt,
+    memorySpan: memorySpan.present ? memorySpan.value : this.memorySpan,
+    forcedGenerationBarrier:
+        forcedGenerationBarrier ?? this.forcedGenerationBarrier,
     apiBaseUrl: apiBaseUrl.present ? apiBaseUrl.value : this.apiBaseUrl,
     apiModelId: apiModelId.present ? apiModelId.value : this.apiModelId,
     apiConfiguredAt: apiConfiguredAt.present
@@ -3099,6 +3190,12 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       onboardingCompletedAt: data.onboardingCompletedAt.present
           ? data.onboardingCompletedAt.value
           : this.onboardingCompletedAt,
+      memorySpan: data.memorySpan.present
+          ? data.memorySpan.value
+          : this.memorySpan,
+      forcedGenerationBarrier: data.forcedGenerationBarrier.present
+          ? data.forcedGenerationBarrier.value
+          : this.forcedGenerationBarrier,
       apiBaseUrl: data.apiBaseUrl.present
           ? data.apiBaseUrl.value
           : this.apiBaseUrl,
@@ -3118,6 +3215,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
           ..write('themeMode: $themeMode, ')
           ..write('dayCutoffHour: $dayCutoffHour, ')
           ..write('onboardingCompletedAt: $onboardingCompletedAt, ')
+          ..write('memorySpan: $memorySpan, ')
+          ..write('forcedGenerationBarrier: $forcedGenerationBarrier, ')
           ..write('apiBaseUrl: $apiBaseUrl, ')
           ..write('apiModelId: $apiModelId, ')
           ..write('apiConfiguredAt: $apiConfiguredAt')
@@ -3131,6 +3230,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     themeMode,
     dayCutoffHour,
     onboardingCompletedAt,
+    memorySpan,
+    forcedGenerationBarrier,
     apiBaseUrl,
     apiModelId,
     apiConfiguredAt,
@@ -3143,6 +3244,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
           other.themeMode == this.themeMode &&
           other.dayCutoffHour == this.dayCutoffHour &&
           other.onboardingCompletedAt == this.onboardingCompletedAt &&
+          other.memorySpan == this.memorySpan &&
+          other.forcedGenerationBarrier == this.forcedGenerationBarrier &&
           other.apiBaseUrl == this.apiBaseUrl &&
           other.apiModelId == this.apiModelId &&
           other.apiConfiguredAt == this.apiConfiguredAt);
@@ -3153,6 +3256,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
   final Value<AppThemeMode> themeMode;
   final Value<int> dayCutoffHour;
   final Value<DateTime?> onboardingCompletedAt;
+  final Value<int?> memorySpan;
+  final Value<bool> forcedGenerationBarrier;
   final Value<String?> apiBaseUrl;
   final Value<String?> apiModelId;
   final Value<DateTime?> apiConfiguredAt;
@@ -3161,6 +3266,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
     this.themeMode = const Value.absent(),
     this.dayCutoffHour = const Value.absent(),
     this.onboardingCompletedAt = const Value.absent(),
+    this.memorySpan = const Value.absent(),
+    this.forcedGenerationBarrier = const Value.absent(),
     this.apiBaseUrl = const Value.absent(),
     this.apiModelId = const Value.absent(),
     this.apiConfiguredAt = const Value.absent(),
@@ -3170,6 +3277,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
     this.themeMode = const Value.absent(),
     this.dayCutoffHour = const Value.absent(),
     this.onboardingCompletedAt = const Value.absent(),
+    this.memorySpan = const Value.absent(),
+    this.forcedGenerationBarrier = const Value.absent(),
     this.apiBaseUrl = const Value.absent(),
     this.apiModelId = const Value.absent(),
     this.apiConfiguredAt = const Value.absent(),
@@ -3179,6 +3288,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
     Expression<String>? themeMode,
     Expression<int>? dayCutoffHour,
     Expression<DateTime>? onboardingCompletedAt,
+    Expression<int>? memorySpan,
+    Expression<bool>? forcedGenerationBarrier,
     Expression<String>? apiBaseUrl,
     Expression<String>? apiModelId,
     Expression<DateTime>? apiConfiguredAt,
@@ -3189,6 +3300,9 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
       if (dayCutoffHour != null) 'day_cutoff_hour': dayCutoffHour,
       if (onboardingCompletedAt != null)
         'onboarding_completed_at': onboardingCompletedAt,
+      if (memorySpan != null) 'memory_span': memorySpan,
+      if (forcedGenerationBarrier != null)
+        'forced_generation_barrier': forcedGenerationBarrier,
       if (apiBaseUrl != null) 'api_base_url': apiBaseUrl,
       if (apiModelId != null) 'api_model_id': apiModelId,
       if (apiConfiguredAt != null) 'api_configured_at': apiConfiguredAt,
@@ -3200,6 +3314,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
     Value<AppThemeMode>? themeMode,
     Value<int>? dayCutoffHour,
     Value<DateTime?>? onboardingCompletedAt,
+    Value<int?>? memorySpan,
+    Value<bool>? forcedGenerationBarrier,
     Value<String?>? apiBaseUrl,
     Value<String?>? apiModelId,
     Value<DateTime?>? apiConfiguredAt,
@@ -3210,6 +3326,9 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
       dayCutoffHour: dayCutoffHour ?? this.dayCutoffHour,
       onboardingCompletedAt:
           onboardingCompletedAt ?? this.onboardingCompletedAt,
+      memorySpan: memorySpan ?? this.memorySpan,
+      forcedGenerationBarrier:
+          forcedGenerationBarrier ?? this.forcedGenerationBarrier,
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
       apiModelId: apiModelId ?? this.apiModelId,
       apiConfiguredAt: apiConfiguredAt ?? this.apiConfiguredAt,
@@ -3235,6 +3354,14 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
         onboardingCompletedAt.value,
       );
     }
+    if (memorySpan.present) {
+      map['memory_span'] = Variable<int>(memorySpan.value);
+    }
+    if (forcedGenerationBarrier.present) {
+      map['forced_generation_barrier'] = Variable<bool>(
+        forcedGenerationBarrier.value,
+      );
+    }
     if (apiBaseUrl.present) {
       map['api_base_url'] = Variable<String>(apiBaseUrl.value);
     }
@@ -3254,6 +3381,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
           ..write('themeMode: $themeMode, ')
           ..write('dayCutoffHour: $dayCutoffHour, ')
           ..write('onboardingCompletedAt: $onboardingCompletedAt, ')
+          ..write('memorySpan: $memorySpan, ')
+          ..write('forcedGenerationBarrier: $forcedGenerationBarrier, ')
           ..write('apiBaseUrl: $apiBaseUrl, ')
           ..write('apiModelId: $apiModelId, ')
           ..write('apiConfiguredAt: $apiConfiguredAt')
@@ -5793,6 +5922,8 @@ typedef $$AppSettingsTableCreateCompanionBuilder =
       Value<AppThemeMode> themeMode,
       Value<int> dayCutoffHour,
       Value<DateTime?> onboardingCompletedAt,
+      Value<int?> memorySpan,
+      Value<bool> forcedGenerationBarrier,
       Value<String?> apiBaseUrl,
       Value<String?> apiModelId,
       Value<DateTime?> apiConfiguredAt,
@@ -5803,6 +5934,8 @@ typedef $$AppSettingsTableUpdateCompanionBuilder =
       Value<AppThemeMode> themeMode,
       Value<int> dayCutoffHour,
       Value<DateTime?> onboardingCompletedAt,
+      Value<int?> memorySpan,
+      Value<bool> forcedGenerationBarrier,
       Value<String?> apiBaseUrl,
       Value<String?> apiModelId,
       Value<DateTime?> apiConfiguredAt,
@@ -5835,6 +5968,16 @@ class $$AppSettingsTableFilterComposer
 
   ColumnFilters<DateTime> get onboardingCompletedAt => $composableBuilder(
     column: $table.onboardingCompletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get memorySpan => $composableBuilder(
+    column: $table.memorySpan,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get forcedGenerationBarrier => $composableBuilder(
+    column: $table.forcedGenerationBarrier,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5883,6 +6026,16 @@ class $$AppSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get memorySpan => $composableBuilder(
+    column: $table.memorySpan,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get forcedGenerationBarrier => $composableBuilder(
+    column: $table.forcedGenerationBarrier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get apiBaseUrl => $composableBuilder(
     column: $table.apiBaseUrl,
     builder: (column) => ColumnOrderings(column),
@@ -5921,6 +6074,16 @@ class $$AppSettingsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get onboardingCompletedAt => $composableBuilder(
     column: $table.onboardingCompletedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get memorySpan => $composableBuilder(
+    column: $table.memorySpan,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get forcedGenerationBarrier => $composableBuilder(
+    column: $table.forcedGenerationBarrier,
     builder: (column) => column,
   );
 
@@ -5975,6 +6138,8 @@ class $$AppSettingsTableTableManager
                 Value<AppThemeMode> themeMode = const Value.absent(),
                 Value<int> dayCutoffHour = const Value.absent(),
                 Value<DateTime?> onboardingCompletedAt = const Value.absent(),
+                Value<int?> memorySpan = const Value.absent(),
+                Value<bool> forcedGenerationBarrier = const Value.absent(),
                 Value<String?> apiBaseUrl = const Value.absent(),
                 Value<String?> apiModelId = const Value.absent(),
                 Value<DateTime?> apiConfiguredAt = const Value.absent(),
@@ -5983,6 +6148,8 @@ class $$AppSettingsTableTableManager
                 themeMode: themeMode,
                 dayCutoffHour: dayCutoffHour,
                 onboardingCompletedAt: onboardingCompletedAt,
+                memorySpan: memorySpan,
+                forcedGenerationBarrier: forcedGenerationBarrier,
                 apiBaseUrl: apiBaseUrl,
                 apiModelId: apiModelId,
                 apiConfiguredAt: apiConfiguredAt,
@@ -5993,6 +6160,8 @@ class $$AppSettingsTableTableManager
                 Value<AppThemeMode> themeMode = const Value.absent(),
                 Value<int> dayCutoffHour = const Value.absent(),
                 Value<DateTime?> onboardingCompletedAt = const Value.absent(),
+                Value<int?> memorySpan = const Value.absent(),
+                Value<bool> forcedGenerationBarrier = const Value.absent(),
                 Value<String?> apiBaseUrl = const Value.absent(),
                 Value<String?> apiModelId = const Value.absent(),
                 Value<DateTime?> apiConfiguredAt = const Value.absent(),
@@ -6001,6 +6170,8 @@ class $$AppSettingsTableTableManager
                 themeMode: themeMode,
                 dayCutoffHour: dayCutoffHour,
                 onboardingCompletedAt: onboardingCompletedAt,
+                memorySpan: memorySpan,
+                forcedGenerationBarrier: forcedGenerationBarrier,
                 apiBaseUrl: apiBaseUrl,
                 apiModelId: apiModelId,
                 apiConfiguredAt: apiConfiguredAt,

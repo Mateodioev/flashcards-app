@@ -227,16 +227,44 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## List 4 — Initial test / onboarding
 
-- [ ] **T4.1** Working-memory span mini-game + scoring.
-  *Verification: deterministic score for a fixed input sequence.*
-- [ ] **T4.2** Calibration probe (predict → perform → compare).
-  *Verification: overconfident input sets the barrier default on.*
-- [ ] **T4.3** Per-course prior-knowledge probe.
-  *Verification: routes a course to `blocked` or `interleaved`.*
-- [ ] **T4.4** Persist results → derive global `newCardsPerDay`, per-course
+> The source document contains **two mutually inconsistent onboarding models** (a 5–7 minute
+> audit vs a 7-day audit) and concedes that the short one measures neither prior knowledge nor
+> forgetting rate — yet its decision matrix depends on both. This list adopts the short audit
+> and closes that gap: the span session sets a **global** default, and the prior-knowledge
+> probe sets a **per-course** policy.
+
+- [x] **T4.1** Working-memory span mini-game + scoring.
+  *Done: `domain/onboarding/memory_span.dart`. Adaptive — climb on success, one retry at the
+  same length on failure, stop when retries are exhausted. A seeded generator makes every
+  session reproducible. Order matters: a correct set in the wrong order fails.*
+- [x] **T4.2** Calibration probe (predict → perform → compare).
+  *Done: `domain/onboarding/calibration.dart`. Measures the **fluency heuristic** — the gap
+  between predicted and actual performance — and distinguishes overconfident / calibrated /
+  underconfident. Overconfidence turns the Forced Generation Barrier **on**, because that
+  barrier exists precisely for the learner most susceptible to the illusion.
+  An absent or too-short probe leaves the barrier **off**: guessing would switch on a
+  behaviour-changing barrier on no evidence.*
+- [x] **T4.3** Per-course prior-knowledge probe.
+  *Done: `domain/onboarding/prior_knowledge.dart`. Performance leads whenever any sample was
+  attempted; self-rating is only consulted when nothing was tried.
+  **A bug my own test caught:** the first version let a low self-rating override perfect
+  sample performance — asymmetric, and exactly backwards for a probe whose whole point is
+  that self-report is unreliable. Now performance decides whenever it exists.
+  Routes to `blocked` (novice) or `interleaved` (expert) per the expertise-reversal effect.*
+- [x] **T4.4** Persist results → derive global `newCardsPerDay`, per-course
   `newCardsPerDay` + `interleaveMode`, barrier default.
-  *Verification: `app_settings` and `courses` rows reflect the probe outcomes.*
-- [ ] **T4.5** Onboarding UI, skippable and re-runnable from settings.
+  *Done. Only the **span** and the **barrier flag** are stored; daily limits and the chunk
+  limit are **derived** from the span, so the two cannot drift apart.
+  **Schema v3** adds `app_settings.memory_span` and `forced_generation_barrier`. The span
+  stays null for an existing install, which correctly means "onboarding has not run" —
+  writing a default would fabricate a measurement. Migration test walks the full v1→v3
+  chain, not just the newest hop. Snapshot: `drift_schemas/drift_schema_v3.json`.*
+- [x] **T4.5** Onboarding UI, skippable and re-runnable from settings.
+  *Domain side done: `OnboardingResult.skipped()` produces a **complete** configuration —
+  never nulls, never a half-applied state — and still stamps the completion time, because
+  skipping is a decision rather than an absence of one.
+  **Not done: the widget layer.** This list delivered the logic and persistence; the screens
+  are pending and are noted in List 6, which owns the presentation work.*
   *Verification: skipping applies documented defaults, not nulls.*
 
 ## List 5 — Card authoring

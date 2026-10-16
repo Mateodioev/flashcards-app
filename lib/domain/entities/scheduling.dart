@@ -76,6 +76,8 @@ class AppSettings {
     required this.id,
     required this.themeMode,
     required this.dayCutoffHour,
+    this.memorySpan,
+    this.forcedGenerationBarrier = false,
     this.onboardingCompletedAt,
     this.apiBaseUrl,
     this.apiModelId,
@@ -87,6 +89,15 @@ class AppSettings {
 
   /// Hour (0-23) at which a "day" rolls over for scheduling.
   final int dayCutoffHour;
+
+  /// Working-memory span from onboarding, or null if it has never run.
+  ///
+  /// The daily new-card target and the content chunk limit are **derived** from
+  /// this, not stored, so there is one source of truth for capacity.
+  final int? memorySpan;
+
+  /// Whether the Forced Generation Barrier defaults to on.
+  final bool forcedGenerationBarrier;
 
   final DateTime? onboardingCompletedAt;
   final String? apiBaseUrl;

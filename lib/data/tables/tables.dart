@@ -194,6 +194,24 @@ class AppSettings extends Table {
 
   DateTimeColumn get onboardingCompletedAt => dateTime().nullable()();
 
+  /// Working-memory span measured by onboarding.
+  ///
+  /// Null when onboarding has never been run. `newCardsPerDay` and the content
+  /// chunk limit are derived from it rather than stored alongside, so there is
+  /// exactly one source of truth for the learner's capacity estimate.
+  ///
+  /// Added in schema v3.
+  IntColumn get memorySpan => integer().nullable()();
+
+  /// Whether the Forced Generation Barrier defaults to on.
+  ///
+  /// Set from the calibration probe. An overconfident learner gets the barrier,
+  /// because the fluency illusion is the specific failure it exists to defeat.
+  ///
+  /// Added in schema v3.
+  BoolColumn get forcedGenerationBarrier =>
+      boolean().withDefault(const Constant(false))();
+
   /// AI base URL. The API **key** never touches this database — it lives in
   /// `flutter_secure_storage`.
   TextColumn get apiBaseUrl => text().nullable()();
