@@ -295,6 +295,41 @@ void main() {
       }
     });
 
+    test('no failure path echoes the image payload', () async {
+      // The payload is a photo of the learner's study material. It is the
+      // largest and most private thing this app sends, so no error message may
+      // contain it. A stray debugPrint of the request body would surface here
+      // if it reached the message, which is the part the UI displays.
+      const payload = 'QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo';
+
+      final handlers = <Future<http.Response> Function(http.Request)>[
+        (_) async => throw http.ClientException('no route to host'),
+        (_) async => http.Response('{"error":"boom"}', 500),
+        (_) async => http.Response('not json at all', 200),
+        (_) async => http.Response('{"choices":[]}', 200),
+      ];
+
+      for (final handler in handlers) {
+        final c = client(handler);
+        try {
+          await c.generateCardsFromImage(
+            modelId: 'm',
+            imageBase64: payload,
+            mimeType: 'image/png',
+            systemPrompt: 's',
+            instruction: 'i',
+          );
+          fail('every handler above should have failed');
+        } on AiException catch (e) {
+          expect(
+            e.message,
+            isNot(contains(payload)),
+            reason: 'a failure message must not carry the image data',
+          );
+        }
+      }
+    });
+
     test('reports a response with no choices', () async {
       final c = client((request) async => http.Response('{"choices":[]}', 200));
       expect(

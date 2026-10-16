@@ -1,6 +1,7 @@
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/presentation/providers.dart';
+import 'package:flashcards2/presentation/screens/ai_settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -88,10 +89,15 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const Divider(),
             const _SectionHeader('AI import'),
-            const ListTile(
-              title: Text('Image to flashcards'),
-              subtitle: Text('Configured in List 8'),
-              enabled: false,
+            ListTile(
+              title: const Text('Image to flashcards'),
+              subtitle: Text(_aiSubtitle(value)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AiSettingsScreen(),
+                ),
+              ),
             ),
           ],
         ),
@@ -105,6 +111,18 @@ class SettingsScreen extends ConsumerWidget {
       AppThemeMode.light => 'Light',
       AppThemeMode.dark => 'Dark',
     };
+  }
+
+  /// Summarises the AI configuration without revealing the key.
+  ///
+  /// This reads the database row only, and the key deliberately is not in it,
+  /// so the text must **not** claim the feature is enabled. Whether a key is
+  /// stored is decided on the AI screen, which can query the keystore.
+  static String _aiSubtitle(AppSettings value) {
+    final model = value.apiModelId;
+    if (model != null && model.isNotEmpty) return 'Model chosen — $model';
+    if (value.apiBaseUrl != null) return 'Endpoint set, no model chosen';
+    return 'Off — set up an endpoint to enable it';
   }
 }
 

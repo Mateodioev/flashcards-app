@@ -82,13 +82,17 @@ class AiSettingsService {
   ///
   /// [verifiedAt] is recorded so the UI can show when the check last passed
   /// rather than implying the key is permanently good.
+  ///
+  /// [apiKey] is optional because the settings screen never re-renders a stored
+  /// key into its field. When it is omitted the stored key is left untouched,
+  /// which is what keeps a re-verification from blanking the credential.
   Future<void> save({
     required String baseUrl,
-    required String apiKey,
     required String modelId,
     required DateTime verifiedAt,
+    String? apiKey,
   }) async {
-    await _keys.write(apiKey.trim());
+    if (apiKey != null) await _keys.write(apiKey.trim());
     final current = await _settings.read();
     await _settings.update(
       current.copyWith(
@@ -104,6 +108,15 @@ class AiSettingsService {
     final current = await _settings.read();
     await _settings.update(current.copyWith(apiModelId: modelId));
   }
+
+  /// Stores a key that has just authenticated, leaving the rest alone.
+  ///
+  /// Separate from [save] because verification succeeds before a model has been
+  /// chosen: the learner proves the key works, then picks a model. Persisting
+  /// only on the model choice would make a verified key look unsaved, and
+  /// persisting the whole configuration would need a model that does not exist
+  /// yet.
+  Future<void> storeVerifiedKey(String apiKey) => _keys.write(apiKey.trim());
 
   /// Removes the configuration and the key.
   ///
