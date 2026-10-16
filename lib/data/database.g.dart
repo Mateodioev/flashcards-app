@@ -3024,8 +3024,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
   /// Working-memory span measured by onboarding.
   ///
   /// Null when onboarding has never been run. `newCardsPerDay` and the content
-  /// chunk limit are derived from this rather than stored alongside it, so there
-  /// is exactly one source of truth for the learner's capacity estimate.
+  /// chunk limit are derived from it rather than stored alongside, so there is
+  /// exactly one source of truth for the learner's capacity estimate.
   ///
   /// Added in schema v3.
   final int? memorySpan;

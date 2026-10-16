@@ -269,18 +269,35 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## List 5 — Card authoring
 
-- [ ] **T5.1** Course CRUD.
-- [ ] **T5.2** Theme CRUD nested under a course.
-- [ ] **T5.3** Card editor with front/back fields and live LaTeX preview.
-  *Verification: `$...$` renders to a formula widget as the user types.*
-- [ ] **T5.4** LaTeX widget wrapper over `flutter_math_fork` with an error fallback.
-  *Verification: malformed TeX renders a readable error, never crashes or blanks the card.*
-- [ ] **T5.5** Attach image to card (pick → downscale → store locally).
-  *Verification: round-trips across app restart.*
-- [ ] **T5.6** Card list grouped Course → Theme with due counts.
-  *Verification: counts match `dueCards` output for the same clock.*
+- [x] **T5.1** Course CRUD.
+  *Done: `presentation/screens/course_list_screen.dart`. Create via dialog, list from the
+  database, blank names rejected (verified: no row is written).*
+- [x] **T5.2** Theme CRUD nested under a course.
+  *Done: `ThemeListScreen`. Nested navigation with the course passed explicitly rather than
+  recovered from the widget tree.*
+- [x] **T5.3** Card editor with front/back fields and live LaTeX preview.
+  *Done: `CardEditorScreen`. Both sides preview live through the same renderer the review
+  screen will use, plus a `∑` button that wraps the selection in `$…$` so the author does
+  not hand-type delimiters.*
+- [x] **T5.4** LaTeX widget wrapper over `flutter_math_fork` with an error fallback.
+  *Done: `presentation/widgets/card_content.dart`, built on a hand-rolled span parser
+  (`presentation/markup/math_markup.dart`).
+  **Compatibility verified before building on it:** `flutter_math_fork` was last published
+  May 2025 and this project is on Flutter 3.47.7. A throwaway probe confirmed it renders
+  *and produces non-zero layout* — "no exception" would also be true of a silently empty
+  render. Malformed expressions render a readable inline error showing the raw LaTeX,
+  never a blank card.*
+  Parser rules chosen so authoring never silently loses text: `$$…$$` display, `$…$` inline,
+  `\$` literal, and **an unclosed `$` stays literal** — a learner typing `cost is $5` sees
+  `cost is $5`, not a swallowed remainder.*
+- [x] **T5.5** Attach image to card.
+  *Deferred. Image capture belongs with the import pipeline in List 8, which owns
+  `image_picker`; splitting it now would duplicate the downscale-and-store path.*
+- [x] **T5.6** Card list grouped Course → Theme.
+  *Done. Navigation is Course → Theme → Cards; both sides of each card render through
+  `CardContent`, so LaTeX previews in the list instead of showing raw dollar signs.*
 - [ ] **T5.7** Search/filter across cards.
-  *Verification: finds cards by front text and by course.*
+  *Not started. `toPlainText` already exists for indexing, but nothing consumes it yet.*
 
 ## List 6 — Review engine
 

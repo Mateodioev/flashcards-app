@@ -1,16 +1,24 @@
 import 'package:flashcards2/core/theme.dart';
+import 'package:flashcards2/data/database.dart';
+import 'package:flashcards2/presentation/providers.dart';
+import 'package:flashcards2/presentation/screens/course_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  runApp(const ProviderScope(child: FlashcardsApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        // The only place the on-disk database is constructed. Everything else
+        // depends on the provider, which tests swap for an in-memory instance.
+        databaseProvider.overrideWithValue(AppDatabase()),
+      ],
+      child: const FlashcardsApp(),
+    ),
+  );
 }
 
 /// Root of the application.
-///
-/// Theming is Material 3 with light/dark/system selection; the persisted
-/// override is wired in a later task (T7.2). This shell exists so the project
-/// has a real entry point instead of the `flutter create` counter demo.
 class FlashcardsApp extends StatelessWidget {
   const new({super.key});
 
@@ -21,19 +29,8 @@ class FlashcardsApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      home: const _HomePlaceholder(),
-    );
-  }
-}
-
-class _HomePlaceholder extends StatelessWidget {
-  const new();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Flashcards')),
-      body: const Center(child: Text('No courses yet.')),
+      // Persisted override is wired in T7.2; `system` is the default.
+      home: const CourseListScreen(),
     );
   }
 }
