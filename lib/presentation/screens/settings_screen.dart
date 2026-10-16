@@ -2,6 +2,7 @@ import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/ai_settings_screen.dart';
+import 'package:flashcards2/presentation/screens/backup_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -87,6 +88,9 @@ class SettingsScreen extends ConsumerWidget {
                 'tend to recognise answers without recalling them.',
               ),
             ),
+            const Divider(),
+            const _SectionHeader('Backup'),
+            const BackupSection(),
             const Divider(),
             const _SectionHeader('AI import'),
             ListTile(
