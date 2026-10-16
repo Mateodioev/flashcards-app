@@ -486,9 +486,32 @@ Two consequences worth recording:
 
 ## List 10 — Polish and release
 
-- [ ] **T10.1** Empty, error, and loading states.
-- [ ] **T10.2** Offline guarantee test: airplane mode, full flow works minus AI.
-- [ ] **T10.3** Local export/backup. No cloud path.
+- [x] **T10.1** Empty, error, and loading states.
+  *Done as an audit, not a checklist.* Every screen already had empty and loading
+  states; the audit found the real gap in `card_editor_screen.dart`, which had **no**
+  error handling at all. A throwing `createCard` left the screen untouched, so the tap
+  looked successful and the authored text was never stored — data loss with no warning.
+  Now caught and shown, the editor stays open with the text intact, `_saving` blocks a
+  double tap, and `_delete` got the same treatment. Sabotage-verified: removing the
+  message fails the test (`+2 -1`).
+- [x] **T10.2** Offline guarantee test: airplane mode, full flow works minus AI.
+  *Done: `test/integration/offline_guarantee_test.dart`.* `HttpOverrides` blocks every
+  `dart:io` connection, then the real repositories, scheduler, settings and provider
+  wiring run on in-memory storage. **The first version proved nothing** — it asserted
+  only that a request to a fake host throws `SocketException`, which is true with or
+  without the guard, since an unresolvable host throws the same exception. Verified by
+  replacing the dead client with a live one: all 9 tests stayed green with the network
+  fully open. Now the guard raises a distinguishable message and a second test proves an
+  unguarded failure differs, so the same sabotage fails the suite (`+10 -1`).
+  Also removed `dio`, a dead dependency kept from before the AI client moved to `http`.
+- [x] **T10.3** Local export/backup. No cloud path.
+  *Done: `lib/domain/backup/` plus a settings panel.* The key cannot leave the device
+  (an allowlist, test-asserted, so a future credential column stays out); a damaged file
+  is validated in full before any write, so it cannot cost existing data; restore is
+  additive. A backup with a null memory span does not clear a measured one. Two real UI
+  bugs found by testing: a controller disposed after `showDialog` returned
+  (`_dependents.isEmpty`), and `_busy` left true while the confirmation waited for the
+  user, spinning a progress indicator forever behind a modal. 21 tests.
 - [ ] **T10.4** App icon, splash, versioning.
 - [ ] **T10.5** Release build and signing.
 
