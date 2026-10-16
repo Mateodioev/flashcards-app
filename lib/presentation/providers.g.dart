@@ -559,6 +559,58 @@ final class CardByIdFamily extends $Family
   String toString() => r'cardByIdProvider';
 }
 
+/// Persists onboarding outcomes into the settings row.
+
+@ProviderFor(onboardingService)
+final onboardingServiceProvider = OnboardingServiceProvider._();
+
+/// Persists onboarding outcomes into the settings row.
+
+final class OnboardingServiceProvider
+    extends
+        $FunctionalProvider<
+          OnboardingService,
+          OnboardingService,
+          OnboardingService
+        >
+    with $Provider<OnboardingService> {
+  /// Persists onboarding outcomes into the settings row.
+  OnboardingServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'onboardingServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$onboardingServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<OnboardingService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  OnboardingService create(Ref ref) {
+    return onboardingService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(OnboardingService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<OnboardingService>(value),
+    );
+  }
+}
+
+String _$onboardingServiceHash() => r'601364a1ae162ba50e45101ab0141924a2a31eab';
+
 /// The API key store. Overridden in tests with an in-memory implementation so
 /// no test touches the platform keystore.
 

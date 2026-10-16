@@ -23,6 +23,20 @@ void main() {
     );
   }
 
+  /// Stamps onboarding as done so the launch gate opens onto the course list.
+  /// Tests that start from the course list need this; the gate itself is
+  /// covered in `app_test.dart`.
+  Future<void> stampOnboarding() {
+    return db
+        .into(db.appSettings)
+        .insert(
+          AppSettingsCompanion.insert(
+            id: const Value(AppSettings.singletonId),
+            onboardingCompletedAt: Value(DateTime(2026)),
+          ),
+        );
+  }
+
   group('AppSettings.copyWith', () {
     test('changes only the named field', () {
       const original = AppSettings(
@@ -63,6 +77,7 @@ void main() {
     });
 
     testWidgets('choosing Dark persists and applies', (tester) async {
+      await stampOnboarding();
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
@@ -100,6 +115,7 @@ void main() {
     });
 
     testWidgets('switching back to Match device persists', (tester) async {
+      await stampOnboarding();
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.settings_outlined));
@@ -119,12 +135,17 @@ void main() {
 
   group('barrier preference', () {
     testWidgets('toggling it persists', (tester) async {
+      await stampOnboarding();
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('Require recall before revealing'), findsOneWidget);
+      // The barrier tile sits below the fold since the rerun tile landed.
+      await tester.scrollUntilVisible(
+        find.text('Require recall before revealing'),
+        100,
+      );
       await tester.tap(find.text('Require recall before revealing'));
       await tester.pumpAndSettle();
 
@@ -135,6 +156,9 @@ void main() {
 
   group('settings screen', () {
     testWidgets('reports an unmeasured span honestly', (tester) async {
+      // Onboarding completed but the span is null: reachable after restoring
+      // a backup taken before this install ran onboarding.
+      await stampOnboarding();
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.settings_outlined));
@@ -154,6 +178,7 @@ void main() {
             AppSettingsCompanion.insert(
               id: const Value(AppSettings.singletonId),
               memorySpan: const Value(5),
+              onboardingCompletedAt: Value(DateTime(2026)),
             ),
           );
 

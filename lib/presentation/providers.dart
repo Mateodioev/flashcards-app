@@ -10,6 +10,7 @@ import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
 import 'package:flashcards2/domain/enums.dart';
+import 'package:flashcards2/domain/onboarding/onboarding_service.dart';
 import 'package:flashcards2/domain/repositories/card_repository.dart';
 import 'package:flashcards2/domain/repositories/course_repository.dart';
 import 'package:flashcards2/domain/repositories/review_log_repository.dart';
@@ -78,6 +79,12 @@ Future<List<Card>> cards(Ref ref, int themeId) {
 @riverpod
 Future<Card?> cardById(Ref ref, int cardId) {
   return ref.watch(cardRepositoryProvider).findCardById(cardId);
+}
+
+/// Persists onboarding outcomes into the settings row.
+@Riverpod(keepAlive: true)
+OnboardingService onboardingService(Ref ref) {
+  return OnboardingService(ref.watch(settingsRepositoryProvider));
 }
 
 /// The API key store. Overridden in tests with an in-memory implementation so

@@ -260,11 +260,20 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
   writing a default would fabricate a measurement. Migration test walks the full v1→v3
   chain, not just the newest hop. Snapshot: `drift_schemas/drift_schema_v3.json`.*
 - [x] **T4.5** Onboarding UI, skippable and re-runnable from settings.
-  *Domain side done: `OnboardingResult.skipped()` produces a **complete** configuration —
+  *Domain side: `OnboardingResult.skipped()` produces a **complete** configuration —
   never nulls, never a half-applied state — and still stamps the completion time, because
   skipping is a decision rather than an absence of one.
-  **Not done: the widget layer.** This list delivered the logic and persistence; the screens
-  are pending and are noted in List 6, which owns the presentation work.*
+  **Done: the widget layer** (`presentation/screens/onboarding_screen.dart`). Welcome →
+  digit-span game → results → persist through `OnboardingService`, with the confidence
+  question before every trial feeding the calibration probe (partial accuracy as "actual",
+  span itself stays strict). Partial accuracy is what keeps the calibration honest: a
+  strict all-or-nothing score would collapse predictions into a coin flip. The launch gate
+  in `main.dart` watches the settings stamp; skipping or finishing flips it without any
+  navigation code. Re-runnable from settings, which pops back on finish.
+  Widget tests play seeded sessions start to finish: perfect run (span 9), overconfident
+  run (barrier on), total failure (fallback span, honestly labelled), skip, and rerun-pop.
+  One trap pinned in a comment: widget tests need one frame per keypad tap, otherwise
+  Check is hit-tested against the stale frame where it was still disabled.*
   *Verification: skipping applies documented defaults, not nulls.*
 
 ## List 5 — Card authoring

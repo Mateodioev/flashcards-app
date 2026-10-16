@@ -1,6 +1,8 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flashcards2/core/theme.dart';
 import 'package:flashcards2/data/database.dart';
+import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/main.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flutter/material.dart';
@@ -22,9 +24,36 @@ void main() {
     setUp(() => db = AppDatabase(NativeDatabase.memory()));
     tearDown(() => db.close());
 
-    testWidgets('boots and shows the course list', (tester) async {
+    testWidgets('boots into onboarding on a fresh install', (tester) async {
       // Overrides the database with an in-memory one: the real `main` opens the
       // on-disk file, which must not happen during a test.
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [databaseProvider.overrideWithValue(db)],
+          child: const FlashcardsApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Two-minute setup'),
+        findsOneWidget,
+        reason: 'onboarding never ran, so the gate must show it',
+      );
+    });
+
+    testWidgets('boots to the course list once onboarding is done', (
+      tester,
+    ) async {
+      await db
+          .into(db.appSettings)
+          .insert(
+            AppSettingsCompanion.insert(
+              id: const Value(AppSettings.singletonId),
+              onboardingCompletedAt: Value(DateTime(2026)),
+            ),
+          );
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [databaseProvider.overrideWithValue(db)],

@@ -3,6 +3,7 @@ import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/ai_settings_screen.dart';
 import 'package:flashcards2/presentation/screens/backup_section.dart';
+import 'package:flashcards2/presentation/screens/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -78,6 +79,18 @@ class SettingsScreen extends ConsumerWidget {
                 value.memorySpan == null
                     ? 'Not measured'
                     : '${value.memorySpan} items',
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.replay_outlined),
+              title: const Text('Run onboarding again'),
+              subtitle: const Text(
+                'Re-measure your memory span and calibration',
+              ),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const OnboardingScreen(isRerun: true),
+                ),
               ),
             ),
             SwitchListTile(
