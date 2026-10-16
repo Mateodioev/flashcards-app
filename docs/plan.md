@@ -547,7 +547,10 @@ Two consequences worth recording:
   fat, all ABIs; per-ABI splits are a later optimization if size ever matters.
   Release checklist items both done: the 4 live integration tests pass with
   `FLASHCARDS2_AI_KEY`, and the shared test key in that transcript still needs
-  rotation by whoever actually ships this.
+  rotation by whoever actually ships this. *Review: granted, risk+reliability
+  lenses, approved (5f83c1d). Its advisories became 16fae25: the debug-key
+  fallback now prints a loud warning instead of signing silently, and the
+  properties stream is closed.*
 
 ---
 
