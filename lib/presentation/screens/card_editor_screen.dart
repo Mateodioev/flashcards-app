@@ -32,6 +32,12 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
 
   bool get _isEditing => widget.existing != null;
 
+  /// True while a save is in flight, so a double tap cannot create two cards.
+  bool _saving = false;
+
+  /// A save failure, kept on screen so the text is not lost with it.
+  String? _error;
+
   @override
   void initState() {
     super.initState();
@@ -52,34 +58,54 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
       _front.text.trim().isNotEmpty && _back.text.trim().isNotEmpty;
 
   Future<void> _save() async {
+    if (_saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
     final repository = ref.read(cardRepositoryProvider);
     final now = DateTime.now();
 
-    if (_isEditing) {
-      final existing = widget.existing!;
-      await repository.updateCard(
-        domain.Card(
-          id: existing.id,
-          themeId: existing.themeId,
-          front: _front.text.trim(),
-          back: _back.text.trim(),
-          source: existing.source,
-          createdAt: existing.createdAt,
-          updatedAt: now,
-        ),
-      );
-    } else {
-      await repository.createCard(
-        domain.Card(
-          id: 0,
-          themeId: widget.theme.id,
-          front: _front.text.trim(),
-          back: _back.text.trim(),
-          source: CardSource.manual,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
+    try {
+      if (_isEditing) {
+        final existing = widget.existing!;
+        await repository.updateCard(
+          domain.Card(
+            id: existing.id,
+            themeId: existing.themeId,
+            front: _front.text.trim(),
+            back: _back.text.trim(),
+            source: existing.source,
+            createdAt: existing.createdAt,
+            updatedAt: now,
+          ),
+        );
+      } else {
+        await repository.createCard(
+          domain.Card(
+            id: 0,
+            themeId: widget.theme.id,
+            front: _front.text.trim(),
+            back: _back.text.trim(),
+            source: CardSource.manual,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+      }
+    } on Object catch (e) {
+      // Without this the screen simply stayed put on a failure: the tap looked
+      // like it worked and the learner's text was silently dropped. Losing an
+      // authored card without a word is worse than an ugly error.
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error =
+            'Could not save the card. Your text is still here — try '
+            'again.\n\n$e';
+      });
+      return;
     }
 
     if (mounted) Navigator.of(context).pop(true);
@@ -104,7 +130,13 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
       ),
     );
     if (confirmed ?? false) {
-      await ref.read(cardRepositoryProvider).deleteCard(widget.existing!.id);
+      try {
+        await ref.read(cardRepositoryProvider).deleteCard(widget.existing!.id);
+      } on Object catch (e) {
+        if (!mounted) return;
+        setState(() => _error = 'Could not delete the card.\n\n$e');
+        return;
+      }
       if (mounted) Navigator.of(context).pop(true);
     }
   }
@@ -139,14 +171,24 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
               tooltip: 'Delete',
             ),
           TextButton(
-            onPressed: _canSave ? _save : null,
-            child: const Text('Save'),
+            onPressed: _canSave && !_saving ? _save : null,
+            child: _saving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Save'),
           ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: <Widget>[
+          if (_error != null) ...<Widget>[
+            _SaveError(message: _error!),
+            const SizedBox(height: 12),
+          ],
           _Field(
             label: 'Front',
             controller: _front,
@@ -285,6 +327,42 @@ class _SyntaxHelp extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A failed save or delete, shown in place of the form.
+///
+/// The message deliberately says the text is still present: the learner's first
+/// worry on a failed save is whether they lost what they wrote, and the answer
+/// is no.
+class _SaveError extends StatelessWidget {
+  const new({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(Icons.error_outline, color: scheme.onErrorContainer, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: scheme.onErrorContainer),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
