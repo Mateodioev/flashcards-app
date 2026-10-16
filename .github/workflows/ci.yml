@@ -32,4 +32,9 @@ jobs:
         run: flutter analyze
 
       - name: Test
-        run: flutter test
+        # Integration tests are excluded deliberately: they need a real
+        # credential and spend tokens. They skip themselves when
+        # FLASHCARDS2_AI_KEY is absent, so this is belt-and-braces, but it keeps
+        # the intent visible. Run them manually before a release (see
+        # test/integration/live_endpoint_test.dart).
+        run: flutter test --exclude-tags integration

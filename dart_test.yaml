@@ -1,0 +1,11 @@
+tags:
+  # Live endpoint tests. They need a real credential (FLASHCARDS2_AI_KEY) and
+  # spend tokens, so CI must exclude them:
+  #   flutter test --exclude-tags integration
+  #
+  # They are the only tests that prove the network path works end to end. Every
+  # other test runs against a stubbed HTTP layer, which cannot catch a wrong
+  # header name, a wrong path, or a provider whose error shape differs from what
+  # the code assumes. Run them manually before a release.
+  integration:
+    skip: false

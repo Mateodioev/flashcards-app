@@ -154,112 +154,121 @@ Respond with JSON only, no prose and no code fences, in exactly this shape:
     return DraftParseResult(drafts: drafts, dropped: dropped);
   }
 
-  /// LaTeX commands whose names collide with JSON string escapes.
+  /// Repairs LaTeX backslashes that JSON decoding would mangle or reject.
   ///
-  /// In JSON, `\` followed by `n`, `t`, `b`, or `f` is a control character, so
-  /// an unescaped `\frac` decodes to a form feed followed by `rac`, `\times` to
-  /// a tab, `\beta` to a backspace. `\u` is worse still: it demands four hex
-  /// digits and makes the whole document invalid.
+  /// JSON accepts these after a backslash inside a string:
   ///
-  /// Repair is deliberately driven by this **known-command list** rather than a
-  /// heuristic, because the case is genuinely ambiguous: `\nu` could be the
-  /// command, or a newline followed by the letter `u`. Guessing would corrupt
-  /// legitimate text, so only recognised commands are rewritten.
-  static const List<String> _latexCommands = <String>[
-    'frac',
-    'forall',
-    'frown',
-    'times',
-    'theta',
-    'tau',
-    'tan',
-    'tanh',
-    'text',
-    'textbf',
-    'textit',
-    'texttt',
-    'to',
-    'top',
-    'triangle',
-    'therefore',
-    'beta',
-    'big',
-    'bigcap',
-    'bigcup',
-    'bigoplus',
-    'bigotimes',
-    'bmod',
-    'binom',
-    'bullet',
-    'because',
-    'nu',
-    'nabla',
-    'neq',
-    'newline',
-    'nolimits',
-    'nonumber',
-    'notin',
-    'normal',
-    'nexists',
-    'nmid',
-    'rho',
-    'right',
-    'rightarrow',
-    'rangle',
-    'rceil',
-    'rfloor',
-    'rtimes',
-    'uarr',
-    'uparrow',
-    'underline',
-    'underbrace',
-    'upsilon',
-    'uplus',
-  ];
-
-  /// Doubles the backslash of any recognised LaTeX command that a model left
-  /// unescaped, leaving genuine JSON escapes untouched.
+  ///  * `"` `\` `/` — complete escapes.
+  ///  * `b` `f` `n` `r` `t` — single-character control escapes.
+  ///  * `u` plus four hex digits — a unicode escape.
+  ///
+  /// Anything else (`\i`, `\s`, `\a`, `\,`, `\{`) is INVALID JSON and makes the
+  /// whole document unparseable. The unparseable cases are unambiguous, so only
+  /// the valid-but-suspicious ones need judgement:
+  ///
+  ///  * `\b` and `\f` are **always** repaired. A backspace or form feed is never
+  ///    wanted in card text, while `\beta`, `\bmod`, `\frac` and `\forall` are
+  ///    ordinary. Repairing costs nothing and rescues real content.
+  ///  * `\n`, `\r` and `\t` are genuinely ambiguous, and are decided by
+  ///    **math-span context**: a newline, tab or carriage return is what a
+  ///    model means in prose, and `\nu`, `\nabla`, `\rho`, `\to`, `\tan` and
+  ///    `\times` are only ever written inside `$...$`. This uses the same
+  ///    boundary the span parser uses rather than inventing a second one.
+  ///
+  /// Two earlier versions failed, and both were caught by probing rather
+  /// than by reading:
+  ///
+  ///  1. A hand-written list of ~70 command names. That is a blocklist, and
+  ///     `\int` and `\sqrt` — routine in real notes — were not on it, so a
+  ///     model emitting them unescaped lost the ENTIRE batch to a JSON error,
+  ///     while `\bar` slipped through as a silent backspace.
+  ///  2. A rule treating "a letter run of two or more" as proof of LaTeX. That
+  ///     mangled `"line1\nline2"` — the run is `nline`, which is not a command
+  ///     at all — turning a real newline into literal text. Run length simply
+  ///     does not carry that information.
   static String _repairLatexEscapes(String source) {
     final buffer = StringBuffer();
     var i = 0;
+    var inMath = false;
+
     while (i < source.length) {
       final char = source[i];
+
+      // Track dollar delimiters so the ambiguous `\n`-family case has context.
+      // An escaped `\$` must NOT toggle this, which is why every backslash
+      // branch below advances past both characters.
+      if (char == r'$') {
+        inMath = !inMath;
+        buffer.write(char);
+        i++;
+        continue;
+      }
+
       if (char != r'\' || i + 1 >= source.length) {
         buffer.write(char);
         i++;
         continue;
       }
 
-      // An already-escaped pair is copied untouched. Without this, the scan
-      // consumes the first backslash of `\\frac` and then "repairs" the second,
-      // producing three backslashes and a control character.
-      if (source[i + 1] == r'\') {
-        buffer.write(r'\\');
+      final next = source[i + 1];
+
+      // JSON's own complete escapes. Rewriting any of these breaks the document
+      // — doubling `\"` terminates the string early. Never LaTeX.
+      if (next == '"' || next == '/' || next == r'\') {
+        buffer.write(source.substring(i, i + 2));
         i += 2;
         continue;
       }
 
-      final rest = source.substring(i + 1);
-      final match = _latexCommands.firstWhere(
-        rest.startsWith,
-        orElse: () => '',
-      );
-
-      if (match.isEmpty) {
-        buffer.write(char);
-        i++;
+      // `\uXXXX` is a legal unicode escape; leave it exactly as written.
+      if (next == 'u' && _hasFourHexDigits(source, i + 2)) {
+        buffer.write(source.substring(i, i + 6));
+        i += 6;
         continue;
       }
 
-      // `\frac` -> `\\frac`, so JSON decoding yields the backslash the LaTeX
-      // needs.
+      // Always LaTeX: a backspace or form feed is never wanted in a card, and
+      // `\beta`, `\bmod`, `\frac`, `\forall` are common.
+      if (next == 'b' || next == 'f') {
+        buffer.write('\\\\$next');
+        i += 2;
+        continue;
+      }
+
+      // Ambiguous control escapes: a real newline/tab/carriage return in prose,
+      // or a command like `\nu` inside maths.
+      if (next == 'n' || next == 'r' || next == 't') {
+        if (inMath) {
+          buffer.write('\\\\$next');
+        } else {
+          buffer.write(source.substring(i, i + 2));
+        }
+        i += 2;
+        continue;
+      }
+
+      // Everything else is LaTeX. Letters (`\int`, `\sqrt`, `\alpha`) make the
+      // document invalid; punctuation (`\,`, `\{`, `\%`, `\&`) does too.
       //
-      // NOT a raw string: interpolating `$match` is the point. In a raw string
-      // this writes the literal characters `$match`.
-      buffer.write('\\\\$match');
-      i += match.length + 1;
+      // This is NOT a raw string: the interpolation of `$next` is the point. In
+      // a raw string it would emit the literal characters.
+      buffer.write('\\\\$next');
+      i += 2;
     }
+
     return buffer.toString();
+  }
+
+  static bool _hasFourHexDigits(String source, int start) {
+    if (start + 4 > source.length) return false;
+    for (var i = start; i < start + 4; i++) {
+      final code = source.codeUnitAt(i);
+      final isDigit = code >= 0x30 && code <= 0x39;
+      final isLower = code >= 0x61 && code <= 0x66;
+      final isUpper = code >= 0x41 && code <= 0x46;
+      if (!isDigit && !isLower && !isUpper) return false;
+    }
+    return true;
   }
 
   static CardDraft? _asDraft(Object? entry) {

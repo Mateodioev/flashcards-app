@@ -85,6 +85,77 @@ void main() {
       }
     });
 
+    test('repairs commands that no hand-written list would contain', () {
+      // Regression guard for the blocklist that used to live here. It covered
+      // ~70 names, and these were not among them: \int, \sqrt and \alpha are
+      // routine in real notes, and each one made the ENTIRE batch fail to
+      // parse.
+      // \bar and \bmod are worse — they parsed, silently losing the backslash.
+      const commands = <String>[
+        'int',
+        'sqrt',
+        'alpha',
+        'gamma',
+        'delta',
+        'lambda',
+        'sigma',
+        'omega',
+        'infty',
+        'partial',
+        'lim',
+        'sum',
+        'prod',
+        'bar',
+        'bmod',
+        'bullet',
+        'label',
+        'underbrace',
+      ];
+      for (final name in commands) {
+        final body = '{"cards":[{"front":"a","back":"\$$name\$"}]}';
+        final result = FlashcardPrompt.parse(body);
+        expect(
+          result.drafts.single.back,
+          '\$$name\$',
+          reason:
+              '\$$name must survive as LaTeX; a blocklist would have lost it',
+        );
+      }
+    });
+
+    test('repairs LaTeX punctuation that JSON rejects outright', () {
+      // None of these are valid JSON escapes, so the whole document used to
+      // become unparseable.
+      const cases = <String, String>{
+        r'\,': ',',
+        r'\;': ';',
+        r'\{': '{',
+        r'\}': '}',
+        r'\%': '%',
+        r'\&': '&',
+        r'\#': '#',
+      };
+      cases.forEach((latex, punctuation) {
+        // Built with jsonEncode so the `$` delimiters in the fixture cannot be
+        // mistaken for Dart interpolation.
+        final body = jsonEncode({
+          'cards': [
+            {'front': 'a', 'back': 'x$latex'},
+          ],
+        });
+        final result = FlashcardPrompt.parse(body);
+        expect(result.drafts.single.front, 'a');
+        // The value must be the LaTeX itself: `x` then backslash then the
+        // punctuation. `latex` already carries its backslash, so interpolating
+        // it is the whole expectation.
+        expect(
+          result.drafts.single.back,
+          'x$latex',
+          reason: '$latex must survive as literal LaTeX ($punctuation)',
+        );
+      });
+    });
+
     test('does not corrupt a genuine JSON escape', () {
       // A real newline the model intended, not a LaTeX command.
       final body = jsonEncode({
@@ -94,6 +165,75 @@ void main() {
       });
       final result = FlashcardPrompt.parse(body);
       expect(result.drafts.single.front, 'line one\nline two');
+    });
+
+    test('a real newline stays a newline, not literal backslash-n', () {
+      // Guards the second regression found by probing. An earlier rule treated
+      // "a letter run after the backslash" as proof of LaTeX, and the run here
+      // is `nline` — a newline followed by the word "line", not a command. It
+      // doubled the backslash, so the card showed a literal `\n` to the learner
+      // while still parsing successfully.
+      final body = jsonEncode({
+        'cards': [
+          {'front': 'line1\nline2', 'back': 'A'},
+        ],
+      });
+      final result = FlashcardPrompt.parse(body);
+      final front = result.drafts.single.front;
+
+      expect(
+        front.codeUnits.contains(0x0A),
+        isTrue,
+        reason: 'the newline must be a real newline character',
+      );
+      expect(
+        front.contains(r'\'),
+        isFalse,
+        reason: 'no literal backslash may remain',
+      );
+    });
+
+    test('a real tab and carriage return survive in prose', () {
+      final body = jsonEncode({
+        'cards': [
+          {'front': 'c1\tc2', 'back': 'r1\rr2'},
+        ],
+      });
+      final result = FlashcardPrompt.parse(body);
+      expect(result.drafts.single.front.codeUnits, contains(0x09));
+      expect(result.drafts.single.back.codeUnits, contains(0x0D));
+    });
+
+    test('a newline/tab inside math is treated as a command', () {
+      // Opposite bias inside `$...$`, where `\nu`, `\to` and `\tan` live.
+      const body = r'{"cards":[{"front":"a","back":"$\nu$"}]}';
+      expect(FlashcardPrompt.parse(body).drafts.single.back, r'$\nu$');
+
+      const to = r'{"cards":[{"front":"a","back":"$x\to y$"}]}';
+      expect(FlashcardPrompt.parse(to).drafts.single.back, r'$x\to y$');
+    });
+
+    test('preserves JSON punctuation escapes untouched', () {
+      // `\"` is a COMPLETE JSON escape. Doubling it terminates the string early
+      // and breaks the document — a regression introduced and then caught by
+      // probing while replacing the command list.
+      final body = jsonEncode({
+        'cards': [
+          {'front': 'He said "hi"', 'back': r'a\b/c'},
+        ],
+      });
+      final result = FlashcardPrompt.parse(body);
+      expect(result.drafts.single.front, 'He said "hi"');
+      expect(result.drafts.single.back, r'a\b/c');
+    });
+
+    test('preserves a unicode escape', () {
+      final body = jsonEncode({
+        'cards': [
+          {'front': 'café', 'back': 'A'},
+        ],
+      });
+      expect(FlashcardPrompt.parse(body).drafts.single.front, 'café');
     });
   });
 
