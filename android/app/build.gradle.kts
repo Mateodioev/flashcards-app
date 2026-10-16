@@ -13,7 +13,12 @@ plugins {
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(keystorePropertiesFile.inputStream())
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+} else {
+    println(
+        "flashcards2: android/key.properties not found — release builds " +
+            "fall back to the DEBUG signing key; do not distribute the APK.",
+    )
 }
 
 android {
