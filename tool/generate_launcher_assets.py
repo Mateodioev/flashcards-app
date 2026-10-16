@@ -12,7 +12,6 @@ adaptive-icon foreground and the splash logo so splash --> icon hand-off does
 not jump.
 """
 
-import math
 from pathlib import Path
 
 from PIL import Image, ImageDraw

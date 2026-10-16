@@ -34,8 +34,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Feast for one, famine for many: the version must scroll into view, so
-    // scroll to it instead of trusting it to be on screen already.
+    // The About tile can be below the fold, so scroll it into view instead of
+    // trusting it to be on screen already.
     await tester.scrollUntilVisible(
       find.text('About'),
       400,
