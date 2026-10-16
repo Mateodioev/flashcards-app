@@ -363,26 +363,63 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## List 8 — AI settings and image → flashcards (riskiest, last)
 
-- [ ] **T8.1** Settings: base URL (default `https://api.synthetic.new/v1`) + API key →
-  secure storage. **Confirm the auth header shape at integration.**
-- [ ] **T8.2** "Verify connection" → `GET /models`.
-  *Verification: a 401 leaves the feature disabled with a clear message.*
-- [ ] **T8.3** Model picker reading `input_modalities` + `supported_features`; badge
-  vision-capable models. Do not hardcode model names.
-  *Verification: models lacking `"image"` are visibly non-selectable for image import.*
-- [ ] **T8.4** Persist the selected model; feature stays disabled until verified.
-  *Verification: feature cannot be reached without a verified configuration.*
-- [ ] **T8.5** Course-selection gate before upload, enforced in the flow.
-  *Verification: upload screen is unreachable without a selected course.*
-- [ ] **T8.6** Image capture/pick → downscale → base64.
-- [ ] **T8.7** Prompt builder demanding strict JSON; `POST /chat/completions`.
-- [ ] **T8.8** Error handling: 401, timeout, non-JSON body, valid JSON with wrong shape,
+**Auth shape RESOLVED by live probe** (`api.synthetic.new`, no credential used):
+the header is `Authorization: Bearer <key>`. A request with no header returns
+`401 {"error":"Authorization header required."}`; a malformed key returns
+`401 {"error":"Invalid API Key."}` — two distinct messages. Credentials are
+resolved **before** the model name, which is what makes an authenticated probe
+viable (see T8.2).
+
+- [x] **T8.1** Settings: base URL (default `https://api.synthetic.new/openai/v1`) +
+  API key → secure storage. **Auth shape confirmed: `Authorization: Bearer <key>`.**
+  Shipped as `AiSettingsScreen`, reachable from Settings → AI import. The stored key is
+  never painted back into the field; it is shown as "a key is stored" with an explicit
+  Replace action. `storeVerifiedKey` persists a key only after it authenticates.
+  *Verification: screen tests assert a stored key is never rendered and that Replace
+  opens an empty field.*
+- [x] **T8.2** "Verify connection". **The original criterion here was WRONG and is
+  corrected:** `GET /models` is served **publicly** on this provider and returns `200`
+  with the full 13-model list even for a deliberately invalid key, so a check built on
+  it would report success for any garbage input and `404`s `/quotas`. Verification now
+  probes an **authenticated** `POST /chat/completions`, treating only `401`/`403` as
+  failure — a `404` for the bogus probe model proves the key passed, because
+  credentials resolve before the model.
+  *Verification: a test asserts the probe path is `chat/completions` and that models are
+  not listed when the key is rejected.*
+- [x] **T8.3** Model picker reading `input_modalities` + `supported_features`; badge
+  vision-capable models. Do not hardcode model names — none are.
+  *Verification: models lacking `"image"` are hidden behind an explicit "show text-only
+  models too" toggle, and an endpoint that declares nothing yields **unknown**, never
+  "unsupported".*
+- [x] **T8.4** Persist the selected model; feature stays disabled until verified.
+  *Verification: `isConfigured()` requires both a key and a model; tests cover no-key,
+  key-without-model, blank-key, and the satisfied case. Settings never claims "enabled"
+  from the database row alone, because the key is not in it.*
+- [x] **T8.5** Course-selection gate before upload, enforced in the flow.
+  *Verification: import starts at course choice and refuses to proceed without one.*
+- [x] **T8.6** Image capture/pick → downscale (1600px, quality 85) → base64.
+- [x] **T8.7** Prompt builder demanding strict JSON; `POST /chat/completions`.
+- [x] **T8.8** Error handling: 401, timeout, non-JSON body, valid JSON with wrong shape,
   partial card lists.
-  *Verification: fixture tests cover each malformed case.*
-- [ ] **T8.9** Mandatory review/edit screen before persistence.
-  *Verification: no card reaches the database without user approval.*
-- [ ] **T8.10** Redaction: the key and image payloads are never logged or exported.
-  *Verification: scan logs and export output for both.*
+  *Verification: 24 fixture tests. A single malformed entry costs one card, not the
+  batch. **Found and fixed a silent-corruption bug:** `\f \t \b \n \r` are all *valid*
+  JSON escapes, so a model emitting unescaped LaTeX decodes without error into control
+  characters — `\frac` became form-feed + `rac`. Repair runs *before* decoding, driven
+  by a known-command list, because `\nu` is genuinely ambiguous between the command and
+  a newline followed by `u`.*
+- [x] **T8.9** Mandatory review/edit screen before persistence.
+  *Verification: cards are approved by default and rejected individually; the review
+  screen renders each front with the same widget the session uses, so broken LaTeX is
+  caught before saving rather than mid-session.*
+- [x] **T8.10** Redaction: the key and image payloads are never logged or exported.
+  *Verification: no logging call exists anywhere in the AI path; a test drives four
+  distinct failure modes and asserts no error message contains the image payload, and a
+  separate test asserts the 401 path never echoes the key.*
+
+**NOT verified:** no request has ever been made with a **real** key, so the end-to-end
+call against the live provider remains unproven. Everything above is proven against a
+stubbed HTTP layer plus the live endpoint's *unauthenticated* behavior. This is the one
+open item from List 8 and belongs to T9.5.
 
 ## List 9 — Verification gates (run alongside, not at the end)
 
@@ -416,25 +453,45 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## Next step
 
-Execute **T2.1** (Drift tables and schema).
+Execute **T9.4** and **T9.5**, then List 10.
 
-Do not start List 3 until the FSRS-5 constants are confirmed against the canonical
-implementation — that single fact is the gate for the app's core value.
+Lists 0–8 are complete: **215 tests pass**, `flutter analyze` reports no issues, and a
+debug APK builds. List 9 is partly satisfied already, because its gates were written
+alongside the work they cover rather than deferred:
+
+- **T9.1 scheduler vectors** — done. `test/domain/fsrs5_reference_vectors_test.dart` is
+  the T3.2 acceptance gate and all five canonical vectors pass, including the interval
+  history `[0,4,14,44,125,328,0,0,6,14,31,65,130]`.
+- **T9.2 repository tests** — done across Lists 2, 4, 5, 6 and 8 on in-memory Drift.
+- **T9.3 malformed model output** — done. 24 parser fixtures plus 21 client tests.
+
+Remaining:
+
+- **T9.4** golden tests for LaTeX in light and dark (deferred from T7.3).
+- **T9.5** end-to-end, which now carries the one genuinely open item in the whole
+  project: **no request has ever been made with a real API key**, so the live
+  image-import call is unproven. Everything else in List 8 is proven against a stubbed
+  HTTP layer and the live endpoint's unauthenticated behavior.
 
 ## Resolved decisions
 
-1. **Flutter version pinning — resolved.** CI is the authoritative pin:
+0. **AI endpoint auth — resolved by live probe.** See the List 8 preamble. The header is
+   `Authorization: Bearer <key>`, and `GET /models` is public, which invalidated the
+   original T8.2 criterion.
+
+1. **FSRS-5: hand-port vs. the official Dart `fsrs` package — resolved: hand-port.**
+   The official package (`fsrs` 2.0.1, `open-spaced-repetition/dart-fsrs`) is **not** a
+   drop-in: its changelog says 2.0.0 is FSRS-6, it lacks the FSRS-5 weight `0.40255`, and
+   its own interval-history test expects `[0,4,14,45,135,372,0,0,2,5,10,20,40]`, which
+   diverges from the canonical FSRS-5 vector `[0,4,14,44,125,328,0,0,6,14,31,65,130]`
+   from the 4th element onward. Adopting it means adopting FSRS-6, not FSRS-5. The
+   hand-port is complete and vector-verified.
+
+2. **Flutter version pinning — resolved.** CI is the authoritative pin:
    `flutter-version: 3.47.7` in `.github/workflows/ci.yml`. The local `.puro.json` remains
    machine-local because puro self-excludes it via `.git/info/exclude`. Upgrading Flutter
    requires updating the workflow in the same change.
 
 ## Open decisions
 
-1. **FSRS-5: hand-port vs. the official Dart `fsrs` package.** Verification found an
-   official package (`fsrs` 2.0.1, `open-spaced-repetition/dart-fsrs`, 65 stars, not
-   archived, last pushed 2025-06-20). It is **not** a drop-in: its changelog says 2.0.0 is
-   FSRS-6, it does not contain the FSRS-5 weight `0.40255`, and its own interval-history
-   test expects `[0,4,14,45,135,372,0,0,2,5,10,20,40]` which **diverges** from the canonical
-   FSRS-5 vector `[0,4,14,44,125,328,0,0,6,14,31,65,130]` from the 4th element onward.
-   Depending on it means adopting FSRS-6, not FSRS-5, with unverified vector behaviour.
-   Not chosen yet — T3.1 is blocked on this choice.
+None blocking. Implementing Lists 9–10 requires no further product decision.
