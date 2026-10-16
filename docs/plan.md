@@ -423,9 +423,22 @@ open item from List 8 and belongs to T9.5.
 
 ## List 9 — Verification gates (run alongside, not at the end)
 
-- [ ] **T9.1** Scheduler unit tests against reference vectors — highest value in the app.
-- [ ] **T9.2** Repository tests on in-memory Drift.
-- [ ] **T9.3** JSON-parsing tests against malformed model output.
+- [x] **T9.1** Scheduler unit tests against reference vectors — highest value in the app.
+  *Done: `test/domain/fsrs5_reference_vectors_test.dart`, 10 tests, all five canonical
+  vectors green, including the interval history `[0,4,14,44,125,328,0,0,6,14,31,65,130]`.
+  This is the T3.2 acceptance gate. It also pins that `enable_short_term` changes **two**
+  code paths (same-day stability and a post-lapse clamp), because leaving it implicit was
+  the single subtlest bug risk in the scheduler.*
+- [x] **T9.2** Repository tests on in-memory Drift.
+  *Done: `test/data/repositories_test.dart` and `test/data/schema_test.dart`, plus the
+  migration chain v1→v3 and the AI settings boundaries. Every repository test runs against
+  in-memory Drift, never a file, so runs are isolated and parallel-safe.*
+- [x] **T9.3** JSON-parsing tests against malformed model output.
+  *Done: 31 parser fixtures in `test/domain/flashcard_prompt_test.dart` plus 21 client
+  tests. Covers code fences, surrounding prose, prose containing braces, truncated and
+  non-object bodies, per-entry malformation, and the full LaTeX-escape matrix. Every case
+  asserts the decoded **value**, not merely that parsing succeeded — the earlier
+  parse-only assertion passed while silently returning a corrupted card.*
 - [x] **T9.4** Golden tests for LaTeX in light and dark.
   *Done: five cases × two brightnesses in `test/presentation/latex_golden_test.dart`,
   rendered against the real `AppTheme`. **Honest limitation: they verify layout and
@@ -436,9 +449,40 @@ open item from List 8 and belongs to T9.5.
   code. Glyph shapes need a device screenshot — an integration test, not a unit one.
   Sabotage-verified: replacing the renderer with an empty box fails 4 of 5 cases with
   real pixel diffs, so they do catch layout regressions.*
-- [ ] **T9.5** End-to-end: create course → add card → review → log written. **Carries the
-  one genuinely open item in the project:** no request has ever been made with a real API
-  key, so the live image-import call is unproven.
+- [x] **T9.5** End-to-end: create course → add card → review → log written.
+  *Done as two halves.* The **network path is now proven against a live endpoint**
+  (`test/integration/live_endpoint_test.dart`, tagged `integration`, skipped without
+  `FLASHCARDS2_AI_KEY`): `verify()` accepts a real key, rejects a bad one with the
+  provider's message, reads image support from `/models`, and completes image → cards
+  through the real parser. Run before a release; CI excludes the tag. The in-app flow
+  (create course → add card → review → log) is covered across Lists 2, 5 and 6.
+
+  **This is no longer an open item.** The live run also caught a truncated test fixture
+  that every stubbed test had passed.
+
+### Second provider verified — DeepSeek
+
+The AI layer was built against Synthetic and then **verified end to end against a
+different OpenAI-compatible provider**, which is the real test of whether the
+abstraction holds:
+
+| | Synthetic | DeepSeek |
+|---|---|---|
+| `GET /models` without auth | **200** (public) | **401** |
+| Auth header | `Bearer` | `Bearer` |
+| Model count | 13 | 2 |
+| Declares `input_modalities` | yes (8 image) | yes (1 image) |
+| `structured_outputs` | advertised 13/13 | **not advertised** |
+
+Two consequences worth recording:
+
+- The public-`/models` trap is **provider-specific, not universal**. DeepSeek rejects an
+  unauthenticated list, which is the conventional behaviour. The `verify()` design
+  survives both because it probes an authenticated endpoint rather than the model list —
+  built for the trap, and still correct when the trap is absent.
+- `structured_outputs` is **not advertised by DeepSeek**, so nothing may depend on it.
+  The parser's tolerance (code fences, surrounding prose, per-entry malformation) is what
+  carries the feature, not the provider's JSON guarantee.
 
 ## List 10 — Polish and release
 
@@ -464,25 +508,27 @@ open item from List 8 and belongs to T9.5.
 
 ## Next step
 
-Execute **T9.4** and **T9.5**, then List 10.
+Execute **List 10** (polish and release).
 
-Lists 0–8 are complete: **215 tests pass**, `flutter analyze` reports no issues, and a
-debug APK builds. List 9 is partly satisfied already, because its gates were written
-alongside the work they cover rather than deferred:
-
-- **T9.1 scheduler vectors** — done. `test/domain/fsrs5_reference_vectors_test.dart` is
-  the T3.2 acceptance gate and all five canonical vectors pass, including the interval
-  history `[0,4,14,44,125,328,0,0,6,14,31,65,130]`.
-- **T9.2 repository tests** — done across Lists 2, 4, 5, 6 and 8 on in-memory Drift.
-- **T9.3 malformed model output** — done. 24 parser fixtures plus 21 client tests.
+Lists 0–9 are complete: **227 tests pass offline**, `flutter analyze` reports no
+issues, a debug APK builds, and **4 live tests pass against a real provider**. The
+project's one genuinely open item — no request had ever been made with a real API key —
+is closed, and the AI layer is now verified against **two** OpenAI-compatible providers.
 
 Remaining:
 
-- **T9.4** golden tests for LaTeX in light and dark (deferred from T7.3).
-- **T9.5** end-to-end, which now carries the one genuinely open item in the whole
-  project: **no request has ever been made with a real API key**, so the live
-  image-import call is unproven. Everything else in List 8 is proven against a stubbed
-  HTTP layer and the live endpoint's unauthenticated behavior.
+- **T10.1** empty, error, and loading states.
+- **T10.2** offline guarantee: airplane mode, full flow works minus AI.
+- **T10.3** local export/backup. No cloud path.
+- **T10.4** app icon, splash, versioning.
+- **T10.5** release build and signing.
+
+Two things a release should not forget:
+
+- Run the live integration tests first — `flutter test --tags integration` with
+  `FLASHCARDS2_AI_KEY` set. They are the only proof the network path works.
+- The API key is still a **test key that has appeared in a chat transcript**. Anyone
+  shipping this should use their own and rotate anything shared.
 
 ## Resolved decisions
 
