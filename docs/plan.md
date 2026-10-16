@@ -512,7 +512,21 @@ Two consequences worth recording:
   bugs found by testing: a controller disposed after `showDialog` returned
   (`_dependents.isEmpty`), and `_busy` left true while the confirmation waited for the
   user, spinning a progress indicator forever behind a modal. 21 tests.
-- [ ] **T10.4** App icon, splash, versioning.
+- [x] **T10.4** App icon, splash, versioning.
+  *Done: a real launcher icon, splash, and a version the UI reads from the
+  package.* The icon is a tilted white card with an indigo fraction — drawn by
+  `tool/generate_launcher_assets.py` so it is reproducible, not a binary from a
+  design tool. The numerator and denominator bars are wider than the vinculum
+  on purpose: drawn equal, all three strokes read as "identical to" (≡) at
+  launcher sizes. Adaptive icon on API 26+ (foreground in the safe zone), the
+  full-bleed PNG as the legacy fallback, and the splash reuses the same glyph
+  over the brand indigo so the splash → icon hand-off does not jump. The
+  launcher label is "Flashcards", matching the `MaterialApp` title. Versioning
+  stays in `pubspec.yaml` (1.0.0+1) and the About section in settings shows
+  name, version, and build from `package_info_plus` at runtime, so the string
+  can never drift from pubspec — a widget test with `setMockInitialValues`
+  asserts exactly that, and fails if the string is hardcoded (verified by
+  sabotage).
 - [ ] **T10.5** Release build and signing.
 
 ---
@@ -540,10 +554,6 @@ is closed, and the AI layer is now verified against **two** OpenAI-compatible pr
 
 Remaining:
 
-- **T10.1** empty, error, and loading states.
-- **T10.2** offline guarantee: airplane mode, full flow works minus AI.
-- **T10.3** local export/backup. No cloud path.
-- **T10.4** app icon, splash, versioning.
 - **T10.5** release build and signing.
 
 Two things a release should not forget:

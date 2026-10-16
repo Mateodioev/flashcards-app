@@ -5,6 +5,7 @@ import 'package:flashcards2/presentation/screens/ai_settings_screen.dart';
 import 'package:flashcards2/presentation/screens/backup_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// App preferences.
 ///
@@ -103,6 +104,9 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            const Divider(),
+            const _SectionHeader('About'),
+            const _AboutTile(),
           ],
         ),
       ),
@@ -142,6 +146,30 @@ Future<void> _setBarrier(WidgetRef ref, bool enabled) async {
   final current = await repository.read();
   await repository.update(current.copyWith(forcedGenerationBarrier: enabled));
   ref.invalidate(appSettingsProvider);
+}
+
+/// Shows the app name with the version and build, read from the package at
+/// runtime so the string can never drift from pubspec.
+class _AboutTile extends StatelessWidget {
+  const new();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        return ListTile(
+          leading: const Icon(Icons.style_outlined),
+          title: Text(
+            info == null
+                ? '…'
+                : '${info.appName} ${info.version} (${info.buildNumber})',
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _SectionHeader extends StatelessWidget {
