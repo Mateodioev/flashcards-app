@@ -45,6 +45,12 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Release signing: android/key.properties and android/app/*.jks never enter
+# git. android/.gitignore already excludes both (key.properties, **/*.jks);
+# this comment exists so the rule is documented where a reviewer looks first.
+# Losing the keystore means losing the ability to update an installed app, so
+# keep a backup somewhere outside this repository.
+
 # Widget Preview related
 .widget_preview/
 

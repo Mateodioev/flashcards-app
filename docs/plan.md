@@ -529,7 +529,25 @@ Two consequences worth recording:
   sabotage). *Review: granted, readability+reliability lenses, approved
   (2f8528b); the only advisory findings were a dead import and an obscure
   comment, both removed in 5ee7757.*
-- [ ] **T10.5** Release build and signing.
+- [x] **T10.5** Release build and signing.
+  *Done: an upload keystore, a release APK signed with it, and a build that
+  survives a fresh clone.* `android/app/upload-keystore.jks` and
+  `android/key.properties` exist only on this machine — `android/.gitignore`
+  already excluded both (`key.properties`, `**/*.jks`), and the build reads
+  the properties only when present, falling back to the debug key otherwise,
+  so a clean clone still builds (verified by deleting the properties file and
+  rebuilding). The signature is proven, not assumed: `apksigner
+  verify --print-certs` shows `CN=Flashcards2 Upload` on the release APK and
+  `CN=Android Debug` on the debug one. **PKCS12 gotcha**: keytool on a modern
+  JDK silently accepts *different* store and key passwords, then signing fails
+  with "Given final block not properly padded" — a PKCS12 keystore holds a
+  single password; use the same one twice. **The keystore is the right to
+  update the app**: losing it means no more updates to already-installed
+  copies, so it needs a backup outside this machine. Release APK is 64 MB —
+  fat, all ABIs; per-ABI splits are a later optimization if size ever matters.
+  Release checklist items both done: the 4 live integration tests pass with
+  `FLASHCARDS2_AI_KEY`, and the shared test key in that transcript still needs
+  rotation by whoever actually ships this.
 
 ---
 
@@ -547,16 +565,10 @@ Two consequences worth recording:
 
 ## Next step
 
-Execute **List 10** (polish and release).
-
-Lists 0–9 are complete: **227 tests pass offline**, `flutter analyze` reports no
-issues, a debug APK builds, and **4 live tests pass against a real provider**. The
-project's one genuinely open item — no request had ever been made with a real API key —
-is closed, and the AI layer is now verified against **two** OpenAI-compatible providers.
-
-Remaining:
-
-- **T10.5** release build and signing.
+The plan is fully executed: Lists 0–10 are complete. **263 offline tests
+pass**, `flutter analyze` reports no issues, **4 live tests pass against a
+real provider**, and the release APK builds signed with an upload key. The
+project's risks are now the ones below, not any unimplemented list.
 
 Two things a release should not forget:
 
@@ -586,4 +598,7 @@ Two things a release should not forget:
 
 ## Open decisions
 
-None blocking. Implementing Lists 9–10 requires no further product decision.
+None blocking. Lists 0–10 are complete: the app is implemented, tested
+(263 offline tests + 4 live), signed, and buildable in release. What remains
+is outside the plan: functioning as a user of it, and rotating the shared test
+API key before any real distribution.
