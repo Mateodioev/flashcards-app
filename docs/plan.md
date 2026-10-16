@@ -426,8 +426,19 @@ open item from List 8 and belongs to T9.5.
 - [ ] **T9.1** Scheduler unit tests against reference vectors — highest value in the app.
 - [ ] **T9.2** Repository tests on in-memory Drift.
 - [ ] **T9.3** JSON-parsing tests against malformed model output.
-- [ ] **T9.4** Golden tests for LaTeX in light and dark.
-- [ ] **T9.5** End-to-end: create course → add card → review → log written.
+- [x] **T9.4** Golden tests for LaTeX in light and dark.
+  *Done: five cases × two brightnesses in `test/presentation/latex_golden_test.dart`,
+  rendered against the real `AppTheme`. **Honest limitation: they verify layout and
+  colour, not letterforms.** Flutter's test environment substitutes the Ahem font, and
+  `flutter_math_fork` resolves its KaTeX faces through a path the test binding does not
+  honour. Loading the faces by hand was measured to make **zero** difference
+  (byte-identical output), so that workaround was removed rather than left in as dead
+  code. Glyph shapes need a device screenshot — an integration test, not a unit one.
+  Sabotage-verified: replacing the renderer with an empty box fails 4 of 5 cases with
+  real pixel diffs, so they do catch layout regressions.*
+- [ ] **T9.5** End-to-end: create course → add card → review → log written. **Carries the
+  one genuinely open item in the project:** no request has ever been made with a real API
+  key, so the live image-import call is unproven.
 
 ## List 10 — Polish and release
 
