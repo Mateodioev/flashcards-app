@@ -559,6 +559,107 @@ final class CardByIdFamily extends $Family
   String toString() => r'cardByIdProvider';
 }
 
+/// The API key store. Overridden in tests with an in-memory implementation so
+/// no test touches the platform keystore.
+
+@ProviderFor(apiKeyStore)
+final apiKeyStoreProvider = ApiKeyStoreProvider._();
+
+/// The API key store. Overridden in tests with an in-memory implementation so
+/// no test touches the platform keystore.
+
+final class ApiKeyStoreProvider
+    extends $FunctionalProvider<ApiKeyStore, ApiKeyStore, ApiKeyStore>
+    with $Provider<ApiKeyStore> {
+  /// The API key store. Overridden in tests with an in-memory implementation so
+  /// no test touches the platform keystore.
+  ApiKeyStoreProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'apiKeyStoreProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$apiKeyStoreHash();
+
+  @$internal
+  @override
+  $ProviderElement<ApiKeyStore> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  ApiKeyStore create(Ref ref) {
+    return apiKeyStore(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ApiKeyStore value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ApiKeyStore>(value),
+    );
+  }
+}
+
+String _$apiKeyStoreHash() => r'b8f2afb55c01666cd314edfaddcba67675fef20f';
+
+/// Reads and writes the AI configuration.
+
+@ProviderFor(aiSettingsService)
+final aiSettingsServiceProvider = AiSettingsServiceProvider._();
+
+/// Reads and writes the AI configuration.
+
+final class AiSettingsServiceProvider
+    extends
+        $FunctionalProvider<
+          AiSettingsService,
+          AiSettingsService,
+          AiSettingsService
+        >
+    with $Provider<AiSettingsService> {
+  /// Reads and writes the AI configuration.
+  AiSettingsServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'aiSettingsServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$aiSettingsServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<AiSettingsService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  AiSettingsService create(Ref ref) {
+    return aiSettingsService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AiSettingsService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AiSettingsService>(value),
+    );
+  }
+}
+
+String _$aiSettingsServiceHash() => r'a47b57ea4dae93b2a28541d83360cc1e462156f2';
+
 /// The persisted settings row.
 ///
 /// Invalidate after writing preferences so the app re-reads rather than keeping

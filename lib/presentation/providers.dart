@@ -1,8 +1,10 @@
+import 'package:flashcards2/data/ai/openai_compatible_client.dart';
 import 'package:flashcards2/data/database.dart';
 import 'package:flashcards2/data/repositories/drift_card_repository.dart';
 import 'package:flashcards2/data/repositories/drift_course_repository.dart';
 import 'package:flashcards2/data/repositories/drift_review_log_repository.dart';
 import 'package:flashcards2/data/repositories/drift_settings_repository.dart';
+import 'package:flashcards2/domain/ai/ai_settings_service.dart';
 import 'package:flashcards2/domain/entities/card.dart';
 import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
@@ -76,6 +78,20 @@ Future<List<Card>> cards(Ref ref, int themeId) {
 @riverpod
 Future<Card?> cardById(Ref ref, int cardId) {
   return ref.watch(cardRepositoryProvider).findCardById(cardId);
+}
+
+/// The API key store. Overridden in tests with an in-memory implementation so
+/// no test touches the platform keystore.
+@Riverpod(keepAlive: true)
+ApiKeyStore apiKeyStore(Ref ref) => SecureApiKeyStore();
+
+/// Reads and writes the AI configuration.
+@Riverpod(keepAlive: true)
+AiSettingsService aiSettingsService(Ref ref) {
+  return AiSettingsService(
+    ref.watch(settingsRepositoryProvider),
+    ref.watch(apiKeyStoreProvider),
+  );
 }
 
 /// The persisted settings row.
