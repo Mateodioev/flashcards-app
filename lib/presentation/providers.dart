@@ -65,3 +65,12 @@ Future<List<Theme>> themes(Ref ref, int courseId) {
 Future<List<Card>> cards(Ref ref, int themeId) {
   return ref.watch(cardRepositoryProvider).findCardsByTheme(themeId);
 }
+
+/// One card by id, for the review screen.
+///
+/// The session walks cards by id rather than holding whole entities, so a card
+/// edited mid-session is not shown from a stale in-memory copy.
+@riverpod
+Future<Card?> cardById(Ref ref, int cardId) {
+  return ref.watch(cardRepositoryProvider).findCardById(cardId);
+}

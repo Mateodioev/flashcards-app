@@ -42,9 +42,19 @@ abstract interface class CardRepository {
   /// Cards due at or before [dueBefore], across one course, one theme, or all.
   ///
   /// Only cards that have been reviewed at least once have a schedule row, so
-  /// this is the review queue — not the new-card queue.
+  /// this is the review queue — not the new-card queue. See [findNewEntries].
   Future<List<DueEntry>> findDueEntries({
     required DateTime dueBefore,
+    int? courseId,
+    int? themeId,
+    int? limit,
+  });
+
+  /// Cards that have never been reviewed, in one course, one theme, or all.
+  ///
+  /// The complement of [findDueEntries]. A session needs both: without this a
+  /// new course would never surface a single card.
+  Future<List<DueEntry>> findNewEntries({
     int? courseId,
     int? themeId,
     int? limit,

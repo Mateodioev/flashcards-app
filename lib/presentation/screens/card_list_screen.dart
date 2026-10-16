@@ -1,7 +1,11 @@
 import 'package:flashcards2/domain/entities/card.dart' as domain;
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
+import 'package:flashcards2/domain/enums.dart';
+import 'package:flashcards2/domain/scheduling/scheduler.dart';
+import 'package:flashcards2/domain/scheduling/session.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/card_editor_screen.dart';
+import 'package:flashcards2/presentation/screens/review_screen.dart';
 import 'package:flashcards2/presentation/widgets/card_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,10 +25,24 @@ class CardListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(theme.name)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEditor(context, ref, theme, null),
-        icon: const Icon(Icons.add),
-        label: const Text('Card'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          FloatingActionButton.extended(
+            heroTag: 'study',
+            onPressed: () => _startSession(context, ref, theme),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Study'),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'addCard',
+            onPressed: () => _openEditor(context, ref, theme, null),
+            icon: const Icon(Icons.add),
+            label: const Text('Card'),
+          ),
+        ],
       ),
       body: cards.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -127,6 +145,64 @@ Future<void> _openEditor(
     ),
   );
   if (saved ?? false) {
+    ref.invalidate(cardsProvider(theme.id));
+  }
+}
+
+/// Builds a session for this theme and opens the review screen.
+///
+/// New and due cards are fetched separately because they are genuinely
+/// different populations: a card gets a schedule row only on its first review,
+/// so an inner join on schedules would hide every card in a new theme.
+Future<void> _startSession(
+  BuildContext context,
+  WidgetRef ref,
+  domain.Theme theme,
+) async {
+  final repository = ref.read(cardRepositoryProvider);
+  final now = DateTime.now();
+
+  final due = await repository.findDueEntries(
+    dueBefore: now,
+    themeId: theme.id,
+  );
+  final fresh = await repository.findNewEntries(themeId: theme.id);
+
+  // New-card intake is the course's business, and the course owns the cap.
+  final course = await ref
+      .read(courseRepositoryProvider)
+      .findById(theme.courseId);
+
+  final session = SessionBuilder.build(
+    request: SessionRequest(
+      now: now,
+      themeId: theme.id,
+      interleaveMode: course?.interleaveMode ?? InterleaveMode.blocked,
+      newCardsPerDay: course?.newCardsPerDay ?? 0,
+    ),
+    due: due,
+    fresh: fresh,
+  );
+
+  if (!context.mounted) return;
+
+  if (session.isEmpty) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Nothing to study here yet.')));
+    return;
+  }
+
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(
+      builder: (_) => ReviewScreen(
+        items: session.items,
+        scheduler: const Scheduler(),
+        barrierEnabled: false,
+      ),
+    ),
+  );
+  if (context.mounted) {
     ref.invalidate(cardsProvider(theme.id));
   }
 }

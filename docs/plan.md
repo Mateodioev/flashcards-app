@@ -301,18 +301,42 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## List 6 — Review engine
 
-- [ ] **T6.1** Session builder: course/theme selection, due count, blocked vs interleaved.
-- [ ] **T6.2** Review screen with a single focus and the 4±1 content limit (`:536-539`).
-  *Verification: no competing panels; one question on screen at a time.*
-- [ ] **T6.3** Forced Generation Barrier (configurable): reveal disabled until an attempt
-  exists (`:1155-1156`).
-  *Verification: reveal control is provably inert before an attempt.*
-- [ ] **T6.4** Rating UI (Again / Hard / Good / Easy) writing to the scheduler.
-- [ ] **T6.5** Record interaction signals: latency, hint use, barrier completion.
-  *Verification: signals recorded for calibration warnings only — they never mutate a grade.*
-- [ ] **T6.6** Write `ReviewLog`, update `ScheduleState`, advance the queue.
-  *Verification: append-only — logs are never updated or deleted.*
-- [ ] **T6.7** Session summary screen (honest stats belong here, not during review).
+> **A blocking gap was found and closed before any UI was built.** `findDueEntries`
+> inner-joins `schedule_states`, and `createCard` writes no schedule row — so a card that
+> had never been reviewed was invisible to every query. A brand-new course would have
+> produced an empty session forever. Onboarding (List 4) had also produced a per-course
+> `newCardsPerDay` that nothing consumed. Both are fixed here.
+
+- [x] **T6.1** Session builder: course/theme selection, due count, blocked vs interleaved.
+  *Done: `domain/scheduling/session.dart`. Composes **two** populations — due (reviewed)
+  and fresh (never reviewed) — which is new: the original plan assumed one queue.
+  The new-card cap is genuinely **per day**: `newCardsAlreadyToday` is subtracted, because
+  otherwise opening the app five times would introduce five sessions' worth of cards.
+  New cards **lead** the session, since they are the ones abandoned first if left to the
+  end. Interleaving applies *within* each portion, not across the boundary — alternating
+  new and review would add difficulty without the discriminative contrast interleaving
+  exists to produce.
+- [x] **T6.2** Review screen with a single focus and the 4±1 content limit.
+  *Done: `presentation/screens/review_screen.dart`. One card at a time; the front is shown
+  alone until revealed.*
+- [x] **T6.3** Forced Generation Barrier (configurable).
+  *Done — and the first version was **broken**. The button read "Answer first" but could
+  never become enabled: `_attempted` was only set *by* revealing, so the barrier was
+  unsatisfiable. My own widget test caught it. Typing now enables reveal, and there is an
+  explicit "I answered aloud" checkbox, because some recall is spoken rather than typed and
+  a keyboard-only barrier would be unusable for that learner.*
+- [x] **T6.4** Rating UI (Again / Hard / Good / Easy) writing to the scheduler.
+  *Done. Rating controls are hidden until reveal, so a rating cannot be given before the
+  learner has seen whether they were right.*
+- [x] **T6.5** Record interaction signals: latency, hint use, barrier completion.
+  *Done: `durationMs` is measured from when the card appeared; `barrierCompleted` records
+  whether an attempt was made. Both are logged and **never override the grade**.*
+- [x] **T6.6** Write `ReviewLog`, update `ScheduleState`, advance the queue.
+  *Done. The first review creates the schedule row (verified: the table starts empty and
+  gains exactly one row). The log remains append-only.*
+- [x] **T6.7** Session summary screen.
+  *Done: per-rating counts after the session, not during it. A running accuracy figure on
+  the review screen invites optimising the number instead of the recall.*
 
 ## List 7 — Theming
 

@@ -168,6 +168,29 @@ class DriftCardRepository implements CardRepository {
         .toList();
   }
 
+  @override
+  Future<List<DueEntry>> findNewEntries({
+    int? courseId,
+    int? themeId,
+    int? limit,
+  }) async {
+    final rows = await _dao.newCardsForCourse(
+      courseId: courseId,
+      themeId: themeId,
+      limit: limit,
+    );
+    return rows
+        .map(
+          (row) => DueEntry(
+            cardId: row.cardId,
+            themeId: row.themeId,
+            courseId: row.courseId,
+            due: row.due,
+          ),
+        )
+        .toList();
+  }
+
   Theme _themeToEntity(ThemeRow row) {
     return Theme(
       id: row.id,

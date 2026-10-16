@@ -99,10 +99,10 @@ class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
 
   /// Cards due at or before [dueBefore], joined to their theme and course.
   ///
-  /// Requires two hops: schedule -> card -> theme. Filtering to scheduled rows
-  /// only is intentional: a card that has never been reviewed has no row here
-  /// and is not "due" in the review sense. New-card intake is a separate
-  /// concern with its own daily cap.
+  /// Requires two hops: schedule -> card -> theme. The inner join means only
+  /// cards that have a schedule row appear; a card is given one on its first
+  /// review, so this is the **review** queue. New cards come from
+  /// [newCardsForCourse], which is the other half of a session.
   ///
   /// Joining once here rather than per card keeps session building at a single
   /// query instead of an N+1 walk.
@@ -139,6 +139,53 @@ class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
           themeId: theme.id,
           courseId: theme.courseId,
           due: schedule.due,
+        );
+      }).toList(),
+    );
+  }
+
+  /// Cards that have never been reviewed, in one course or theme.
+  ///
+  /// The complement of [dueCards]: an anti-join against `schedule_states`,
+  /// because a card gets a schedule row only on its first review. Without this
+  /// a brand-new course would never surface a single card to study.
+  ///
+  /// Ordered by card id so intake is stable and reproducible rather than
+  /// dependent on SQLite's row order.
+  Future<List<DueScheduleRow>> newCardsForCourse({
+    int? courseId,
+    int? themeId,
+    int? limit,
+  }) {
+    final scheduled = selectOnly(scheduleStates)
+      ..addColumns([scheduleStates.cardId]);
+
+    final query =
+        select(cards)
+            .join([innerJoin(themes, themes.id.equalsExp(cards.themeId))])
+          ..where(cards.id.isNotInQuery(scheduled))
+          ..orderBy([OrderingTerm.asc(cards.id)]);
+
+    if (courseId != null) {
+      query.where(themes.courseId.equals(courseId));
+    }
+    if (themeId != null) {
+      query.where(themes.id.equals(themeId));
+    }
+    if (limit != null) {
+      query.limit(limit);
+    }
+
+    return query.get().then(
+      (rows) => rows.map((row) {
+        final card = row.readTable(cards);
+        final theme = row.readTable(themes);
+        return DueScheduleRow(
+          cardId: card.id,
+          themeId: theme.id,
+          courseId: theme.courseId,
+          // Never scheduled, so it is due immediately by definition.
+          due: DateTime.fromMillisecondsSinceEpoch(0),
         );
       }).toList(),
     );

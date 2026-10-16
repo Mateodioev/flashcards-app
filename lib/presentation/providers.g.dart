@@ -465,3 +465,96 @@ final class CardsFamily extends $Family
   @override
   String toString() => r'cardsProvider';
 }
+
+/// One card by id, for the review screen.
+///
+/// The session walks cards by id rather than holding whole entities, so a card
+/// edited mid-session is not shown from a stale in-memory copy.
+
+@ProviderFor(cardById)
+final cardByIdProvider = CardByIdFamily._();
+
+/// One card by id, for the review screen.
+///
+/// The session walks cards by id rather than holding whole entities, so a card
+/// edited mid-session is not shown from a stale in-memory copy.
+
+final class CardByIdProvider
+    extends $FunctionalProvider<AsyncValue<Card?>, Card?, FutureOr<Card?>>
+    with $FutureModifier<Card?>, $FutureProvider<Card?> {
+  /// One card by id, for the review screen.
+  ///
+  /// The session walks cards by id rather than holding whole entities, so a card
+  /// edited mid-session is not shown from a stale in-memory copy.
+  CardByIdProvider._({
+    required CardByIdFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'cardByIdProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$cardByIdHash();
+
+  @override
+  String toString() {
+    return r'cardByIdProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<Card?> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<Card?> create(Ref ref) {
+    final argument = this.argument as int;
+    return cardById(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CardByIdProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$cardByIdHash() => r'6eb99950e7064ea451a157d77c53217dd67c0082';
+
+/// One card by id, for the review screen.
+///
+/// The session walks cards by id rather than holding whole entities, so a card
+/// edited mid-session is not shown from a stale in-memory copy.
+
+final class CardByIdFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<Card?>, int> {
+  CardByIdFamily._()
+    : super(
+        retry: null,
+        name: r'cardByIdProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// One card by id, for the review screen.
+  ///
+  /// The session walks cards by id rather than holding whole entities, so a card
+  /// edited mid-session is not shown from a stale in-memory copy.
+
+  CardByIdProvider call(int cardId) =>
+      CardByIdProvider._(argument: cardId, from: this);
+
+  @override
+  String toString() => r'cardByIdProvider';
+}
