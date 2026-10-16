@@ -106,4 +106,34 @@ class AppSettings {
 
   /// The only settings row there can be.
   static const int singletonId = 1;
+
+  /// A copy with selected fields replaced.
+  ///
+  /// Present because the settings row is updated one field at a time — theme
+  /// mode, day cutoff, onboarding results — and rebuilding all nine fields at
+  /// every call site is how a field silently reverts.
+  AppSettings copyWith({
+    AppThemeMode? themeMode,
+    int? dayCutoffHour,
+    int? memorySpan,
+    bool? forcedGenerationBarrier,
+    DateTime? onboardingCompletedAt,
+    String? apiBaseUrl,
+    String? apiModelId,
+    DateTime? apiConfiguredAt,
+  }) {
+    return AppSettings(
+      id: singletonId,
+      themeMode: themeMode ?? this.themeMode,
+      dayCutoffHour: dayCutoffHour ?? this.dayCutoffHour,
+      memorySpan: memorySpan ?? this.memorySpan,
+      forcedGenerationBarrier:
+          forcedGenerationBarrier ?? this.forcedGenerationBarrier,
+      onboardingCompletedAt:
+          onboardingCompletedAt ?? this.onboardingCompletedAt,
+      apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
+      apiModelId: apiModelId ?? this.apiModelId,
+      apiConfiguredAt: apiConfiguredAt ?? this.apiConfiguredAt,
+    );
+  }
 }

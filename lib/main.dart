@@ -19,17 +19,22 @@ void main() {
 }
 
 /// Root of the application.
-class FlashcardsApp extends StatelessWidget {
+///
+/// Watchful rather than stateless because the theme mode is persisted: changing
+/// it in settings must re-render the whole app without a restart.
+class FlashcardsApp extends ConsumerWidget {
   const new({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'Flashcards',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      // Persisted override is wired in T7.2; `system` is the default.
+      themeMode: mode,
       home: const CourseListScreen(),
     );
   }

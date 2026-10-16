@@ -3,6 +3,7 @@ import 'package:flashcards2/domain/entities/theme.dart' as domain;
 import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/card_list_screen.dart';
+import 'package:flashcards2/presentation/screens/settings_screen.dart';
 import 'package:flashcards2/presentation/widgets/card_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +17,18 @@ class CourseListScreen extends ConsumerWidget {
     final courses = ref.watch(coursesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Courses')),
+      appBar: AppBar(
+        title: const Text('Courses'),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _createCourse(context, ref),
         icon: const Icon(Icons.add),

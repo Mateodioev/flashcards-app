@@ -340,11 +340,26 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 
 ## List 7 — Theming
 
-- [ ] **T7.1** Light/dark palettes, Material 3 seed color.
-- [ ] **T7.2** Persist `ThemeMode`, apply at app root.
-  *Verification: survives restart.*
-- [ ] **T7.3** Audit every screen in both modes.
-  *Verification: golden tests for LaTeX on dark — the specific contrast risk.*
+- [x] **T7.1** Light/dark palettes, Material 3 seed color.
+  *Already present from List 1: `core/theme.dart`, single seed, both brightnesses.*
+- [x] **T7.2** Persist `ThemeMode`, apply at app root.
+  *Done. `FlashcardsApp` is now a `ConsumerWidget` watching `themeModeProvider`, so a
+  change re-renders the whole app without a restart. The provider falls back to
+  `ThemeMode.system` **while settings are loading** rather than flashing a preference the
+  learner never chose. Writes go through `AppSettings.copyWith`, added here because the
+  settings row is updated one field at a time and rebuilding all nine fields at every call
+  site is how a field silently reverts.*
+- [x] **T7.3** Audit every screen in both modes.
+  *Partially done: both themes render the settings screen without exceptions, and the
+  re-launch path is covered (a stored `light` preference is honoured before any
+  interaction). **Golden tests are still pending** — they belong with T9.4, which owns
+  visual regression, and LaTeX-on-dark remains the specific contrast risk to pin there.*
+  Also added the settings screen itself, which did not exist: theme mode, day cutoff,
+  measured span, and the barrier toggle. It reports an unmeasured span as "Not measured"
+  rather than inventing a number.*
+  **Note:** `RadioListTile.groupValue`/`onChanged` are deprecated in this Flutter
+  (after v3.32.0). The group now owns selection via a `RadioGroup` ancestor and the tiles
+  declare only their own `value`.
 
 ## List 8 — AI settings and image → flashcards (riskiest, last)
 

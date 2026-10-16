@@ -558,3 +558,114 @@ final class CardByIdFamily extends $Family
   @override
   String toString() => r'cardByIdProvider';
 }
+
+/// The persisted settings row.
+///
+/// Invalidate after writing preferences so the app re-reads rather than keeping
+/// a second copy in memory.
+
+@ProviderFor(appSettings)
+final appSettingsProvider = AppSettingsProvider._();
+
+/// The persisted settings row.
+///
+/// Invalidate after writing preferences so the app re-reads rather than keeping
+/// a second copy in memory.
+
+final class AppSettingsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<AppSettings>,
+          AppSettings,
+          FutureOr<AppSettings>
+        >
+    with $FutureModifier<AppSettings>, $FutureProvider<AppSettings> {
+  /// The persisted settings row.
+  ///
+  /// Invalidate after writing preferences so the app re-reads rather than keeping
+  /// a second copy in memory.
+  AppSettingsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'appSettingsProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$appSettingsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<AppSettings> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<AppSettings> create(Ref ref) {
+    return appSettings(ref);
+  }
+}
+
+String _$appSettingsHash() => r'ea8d8521ce68053dda40da0a5cdf5bf62f9a70eb';
+
+/// The active theme mode.
+///
+/// Falls back to [ThemeMode.system] while settings are loading, which is the
+/// correct default: it matches the device rather than flashing a preference the
+/// learner never chose.
+
+@ProviderFor(themeMode)
+final themeModeProvider = ThemeModeProvider._();
+
+/// The active theme mode.
+///
+/// Falls back to [ThemeMode.system] while settings are loading, which is the
+/// correct default: it matches the device rather than flashing a preference the
+/// learner never chose.
+
+final class ThemeModeProvider
+    extends $FunctionalProvider<ThemeMode, ThemeMode, ThemeMode>
+    with $Provider<ThemeMode> {
+  /// The active theme mode.
+  ///
+  /// Falls back to [ThemeMode.system] while settings are loading, which is the
+  /// correct default: it matches the device rather than flashing a preference the
+  /// learner never chose.
+  ThemeModeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'themeModeProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$themeModeHash();
+
+  @$internal
+  @override
+  $ProviderElement<ThemeMode> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  ThemeMode create(Ref ref) {
+    return themeMode(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ThemeMode value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ThemeMode>(value),
+    );
+  }
+}
+
+String _$themeModeHash() => r'fc7eabb56de3e67323b83a531b3384dd46f7f98c';

@@ -5,11 +5,14 @@ import 'package:flashcards2/data/repositories/drift_review_log_repository.dart';
 import 'package:flashcards2/data/repositories/drift_settings_repository.dart';
 import 'package:flashcards2/domain/entities/card.dart';
 import 'package:flashcards2/domain/entities/course.dart';
+import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
+import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/domain/repositories/card_repository.dart';
 import 'package:flashcards2/domain/repositories/course_repository.dart';
 import 'package:flashcards2/domain/repositories/review_log_repository.dart';
 import 'package:flashcards2/domain/repositories/settings_repository.dart';
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'providers.g.dart';
@@ -73,4 +76,31 @@ Future<List<Card>> cards(Ref ref, int themeId) {
 @riverpod
 Future<Card?> cardById(Ref ref, int cardId) {
   return ref.watch(cardRepositoryProvider).findCardById(cardId);
+}
+
+/// The persisted settings row.
+///
+/// Invalidate after writing preferences so the app re-reads rather than keeping
+/// a second copy in memory.
+@Riverpod(keepAlive: true)
+Future<AppSettings> appSettings(Ref ref) {
+  return ref.watch(settingsRepositoryProvider).read();
+}
+
+/// The active theme mode.
+///
+/// Falls back to [ThemeMode.system] while settings are loading, which is the
+/// correct default: it matches the device rather than flashing a preference the
+/// learner never chose.
+@Riverpod(keepAlive: true)
+ThemeMode themeMode(Ref ref) {
+  final settings = ref.watch(appSettingsProvider);
+  return settings.maybeWhen(
+    data: (value) => switch (value.themeMode) {
+      AppThemeMode.light => ThemeMode.light,
+      AppThemeMode.dark => ThemeMode.dark,
+      AppThemeMode.system => ThemeMode.system,
+    },
+    orElse: () => ThemeMode.system,
+  );
 }
