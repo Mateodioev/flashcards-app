@@ -56,11 +56,31 @@ class DriftReviewLogRepository implements ReviewLogRepository {
     required int dayCutoffHour,
     int? courseId,
   }) async {
-    final firstReviews = await _dao.firstReviewDates(courseId: courseId);
+    final firstReviews = await _dao.firstReviewsByCourse();
     final today = Scheduler.dayIndex(now, dayCutoffHour);
     return firstReviews
-        .where((first) => Scheduler.dayIndex(first, dayCutoffHour) == today)
+        .where(
+          (entry) =>
+              (courseId == null || entry.courseId == courseId) &&
+              Scheduler.dayIndex(entry.firstReview, dayCutoffHour) == today,
+        )
         .length;
+  }
+
+  @override
+  Future<Map<int, int>> countNewCardsIntroducedTodayByCourse({
+    required DateTime now,
+    required int dayCutoffHour,
+  }) async {
+    final firstReviews = await _dao.firstReviewsByCourse();
+    final today = Scheduler.dayIndex(now, dayCutoffHour);
+    final counts = <int, int>{};
+    for (final entry in firstReviews) {
+      if (Scheduler.dayIndex(entry.firstReview, dayCutoffHour) == today) {
+        counts[entry.courseId] = (counts[entry.courseId] ?? 0) + 1;
+      }
+    }
+    return counts;
   }
 
   ReviewLog _toDomain(ReviewLogRow row) {

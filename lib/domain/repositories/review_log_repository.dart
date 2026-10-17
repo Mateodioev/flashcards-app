@@ -31,4 +31,14 @@ abstract interface class ReviewLogRepository {
     required int dayCutoffHour,
     int? courseId,
   });
+
+  /// The same ledger as [countNewCardsIntroducedToday], keyed by course.
+  ///
+  /// Returns a map from course id to the number of cards introduced in that
+  /// course during the scheduling day containing [now]. Courses with no
+  /// introduction are absent rather than zero.
+  Future<Map<int, int>> countNewCardsIntroducedTodayByCourse({
+    required DateTime now,
+    required int dayCutoffHour,
+  });
 }

@@ -411,6 +411,24 @@ void main() {
             '${Scheduler.dayIndex(DateTime(2026, 1, 2, 2))}',
       );
     });
+
+    test('the aggregate counter keys introductions by course', () async {
+      final (courseA, _, cardA) = await seedCard('A');
+      final (courseB, _, cardB) = await seedCard('B');
+      final now = DateTime(2026, 1, 2, 12);
+
+      // A introduced today, B introduced yesterday, a third card for A today.
+      await logs.append(logFor(cardA.id, DateTime(2026, 1, 2, 9), Rating.good));
+      await logs.append(logFor(cardB.id, DateTime(2026, 1, 1, 9), Rating.good));
+
+      final counts = await logs.countNewCardsIntroducedTodayByCourse(
+        now: now,
+        dayCutoffHour: 4,
+      );
+
+      expect(counts[courseA.id], 1);
+      expect(counts[courseB.id], isNull, reason: 'B was introduced yesterday');
+    });
   });
 
   group('SettingsRepository', () {
