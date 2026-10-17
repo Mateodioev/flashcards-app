@@ -27,4 +27,4 @@ Global search/filter across cards, per `docs/plan.md` T5.7: "Search/filter acros
 - L3 (approved): "Approve, implement it". Decisions D1-D5 stand.
 - L4: Naming deviation from L2: the interface method is `findCardsWithContext` (candidate fetch; matching is separate in `cardsMatchingQuery`), layering-respecting: data must not import the presentation-owned `toPlainText`. RED → GREEN observed for matcher, repository and screen tests.
 - L5: Verified: `dart analyze` clean; `flutter test` 314 passed, 4 skipped. Work-unit commits `1f62b65` (data + matcher), `11887d1` (screen + entry + docs).
-- L6: RDD assess `407b796..HEAD`: pending untracked declaration at first run (feature doc then committed).
+- L6: RDD assess `407b796..HEAD`: risk `medium`, `review_due=false` (`under_budget`, 1030 changed lines). No native review due; the reviewed boundary stays at `407b796` for the next feature. First run refused on undeclared untracked files; resolved by committing this document.
