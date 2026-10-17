@@ -16,4 +16,16 @@ abstract interface class ReviewLogRepository {
   /// Feeds the accuracy heuristic, which reads history rather than a running
   /// counter.
   Future<List<ReviewLog>> recent({int? courseId, int limit = 50});
+
+  /// How many cards were introduced (received their first review) during the
+  /// scheduling day that contains [now], in one course, one theme, or all.
+  ///
+  /// [dayCutoffHour] shifts the day boundary the same way the scheduler does, so
+  /// a 2am review counts as part of the previous day under a 4am cutoff.
+  Future<int> countNewCardsIntroducedToday({
+    required DateTime now,
+    required int dayCutoffHour,
+    int? courseId,
+    int? themeId,
+  });
 }

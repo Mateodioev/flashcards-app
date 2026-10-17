@@ -3,6 +3,7 @@ import 'package:flashcards2/data/daos/review_log_dao.dart';
 import 'package:flashcards2/data/database.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/repositories/review_log_repository.dart';
+import 'package:flashcards2/domain/scheduling/scheduler.dart';
 
 /// Drift-backed [ReviewLogRepository].
 ///
@@ -47,6 +48,23 @@ class DriftReviewLogRepository implements ReviewLogRepository {
   Future<List<ReviewLog>> recent({int? courseId, int limit = 50}) async {
     final rows = await _dao.recent(courseId: courseId, limit: limit);
     return rows.map(_toDomain).toList();
+  }
+
+  @override
+  Future<int> countNewCardsIntroducedToday({
+    required DateTime now,
+    required int dayCutoffHour,
+    int? courseId,
+    int? themeId,
+  }) async {
+    final firstReviews = await _dao.firstReviewDates(
+      courseId: courseId,
+      themeId: themeId,
+    );
+    final today = Scheduler.dayIndex(now, dayCutoffHour);
+    return firstReviews
+        .where((first) => Scheduler.dayIndex(first, dayCutoffHour) == today)
+        .length;
   }
 
   ReviewLog _toDomain(ReviewLogRow row) {

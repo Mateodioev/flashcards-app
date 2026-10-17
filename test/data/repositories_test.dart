@@ -10,6 +10,7 @@ import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
 import 'package:flashcards2/domain/enums.dart';
+import 'package:flashcards2/domain/scheduling/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Behavioral tests for the Drift repository implementations.
@@ -288,6 +289,117 @@ void main() {
       expect(history.first.rating, Rating.easy);
       expect(history.first.hintUsed, isTrue);
       expect(history.last.rating, Rating.good);
+    });
+
+    Future<(Course, Theme, Card)> seedCard(String courseName) async {
+      final course = await courses.create(
+        Course(
+          id: 0,
+          name: courseName,
+          createdAt: DateTime(2026),
+          newCardsPerDay: 2,
+          interleaveMode: InterleaveMode.blocked,
+          archived: false,
+        ),
+      );
+      final theme = await cards.createTheme(
+        Theme(
+          id: 0,
+          courseId: course.id,
+          name: '$courseName-theme',
+          createdAt: DateTime(2026),
+        ),
+      );
+      final card = await cards.createCard(
+        Card(
+          id: 0,
+          themeId: theme.id,
+          front: 'q',
+          back: 'a',
+          source: CardSource.manual,
+          createdAt: DateTime(2026),
+          updatedAt: DateTime(2026),
+        ),
+      );
+      return (course, theme, card);
+    }
+
+    ReviewLog logFor(int cardId, DateTime reviewedAt, Rating rating) {
+      return ReviewLog(
+        id: 0,
+        cardId: cardId,
+        rating: rating,
+        reviewedAt: reviewedAt,
+        elapsedDays: 0,
+        scheduledDays: 1,
+        state: ReviewState.review,
+        durationMs: 500,
+        hintUsed: false,
+        barrierCompleted: true,
+      );
+    }
+
+    test('counts a card introduced today exactly once', () async {
+      final (_, _, card) = await seedCard('Today');
+      final now = DateTime(2026, 1, 2, 12);
+
+      await logs.append(logFor(card.id, DateTime(2026, 1, 2, 9), Rating.good));
+      await logs.append(logFor(card.id, DateTime(2026, 1, 2, 11), Rating.easy));
+
+      final count = await logs.countNewCardsIntroducedToday(
+        now: now,
+        dayCutoffHour: 4,
+      );
+      expect(count, 1);
+    });
+
+    test('does not count a card whose first review was a previous day', () async {
+      final (_, _, card) = await seedCard('Earlier');
+      final now = DateTime(2026, 1, 3, 12);
+
+      await logs.append(logFor(card.id, DateTime(2026, 1, 2, 9), Rating.good));
+      await logs.append(logFor(card.id, DateTime(2026, 1, 3, 10), Rating.easy));
+
+      final count = await logs.countNewCardsIntroducedToday(
+        now: now,
+        dayCutoffHour: 4,
+      );
+      expect(count, 0);
+    });
+
+    test('the course filter excludes another course', () async {
+      final (course, _, _) = await seedCard('Target');
+      final (other, _, otherCard) = await seedCard('Other');
+      final now = DateTime(2026, 1, 2, 12);
+
+      await logs.append(logFor(otherCard.id, DateTime(2026, 1, 2, 9), Rating.good));
+
+      final count = await logs.countNewCardsIntroducedToday(
+        now: now,
+        dayCutoffHour: 4,
+        courseId: course.id,
+      );
+      expect(count, 0);
+      expect(other.id, isNot(course.id));
+    });
+
+    test('honours the day cutoff: 2am belongs to the previous day', () async {
+      final (_, _, card) = await seedCard('Cutoff');
+      final now = DateTime(2026, 1, 2, 12);
+
+      // 2am with a 4am cutoff is still "yesterday".
+      await logs.append(logFor(card.id, DateTime(2026, 1, 2, 2), Rating.good));
+
+      final count = await logs.countNewCardsIntroducedToday(
+        now: now,
+        dayCutoffHour: 4,
+      );
+      expect(
+        count,
+        0,
+        reason: '${Scheduler.dayIndex(now, 4)} != '
+            '${Scheduler.dayIndex(DateTime(2026, 1, 2, 2), 4)}',
+      );
     });
   });
 
