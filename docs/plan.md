@@ -322,9 +322,9 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
   The new-card cap is genuinely **per day**: `newCardsAlreadyToday` is subtracted, because
   otherwise opening the app five times would introduce five sessions' worth of cards.
   New cards **lead** the session, since they are the ones abandoned first if left to the
-  end. Interleaving applies *within* each portion, not across the boundary — alternating
-  new and review would add difficulty without the discriminative contrast interleaving
-  exists to produce.
+  end. Interleaving applies to the **review portion only** — alternating new and review
+  would add difficulty without the discriminative contrast interleaving exists to produce,
+  and fresh cards are introduced in a stable blocked order before contrast is meaningful.
 - [x] **T6.2** Review screen with a single focus and the 4±1 content limit.
   *Done: `presentation/screens/review_screen.dart`. One card at a time; the front is shown
   alone until revealed.*
@@ -346,6 +346,15 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 - [x] **T6.7** Session summary screen.
   *Done: per-rating counts after the session, not during it. A running accuracy figure on
   the review screen invites optimising the number instead of the recall.*
+- [x] **T6.8** Course-wide `Study` and a genuinely daily new-card cap.
+  *Done: `presentation/study_session_launcher.dart` builds a session for one theme or a
+  whole course and opens the review screen. `ThemeListScreen` now exposes a `Study` action
+  for the whole course, and `CardListScreen` delegates to the same launcher. The new-card
+  allowance is now genuinely per day: `ReviewLogRepository.countNewCardsIntroducedToday`
+  counts cards whose first review falls in the current scheduling day — honouring
+  `dayCutoffHour` — and the launcher subtracts it from `newCardsPerDay`. The launcher also
+  applies `forcedGenerationBarrier` and the configured `dayCutoffHour` to the scheduler.
+  FSRS-5 itself is unchanged.*
 
 ## List 7 — Theming
 

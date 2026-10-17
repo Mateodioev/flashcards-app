@@ -353,26 +353,35 @@ void main() {
       expect(count, 1);
     });
 
-    test('does not count a card whose first review was a previous day', () async {
-      final (_, _, card) = await seedCard('Earlier');
-      final now = DateTime(2026, 1, 3, 12);
+    test(
+      'does not count a card whose first review was a previous day',
+      () async {
+        final (_, _, card) = await seedCard('Earlier');
+        final now = DateTime(2026, 1, 3, 12);
 
-      await logs.append(logFor(card.id, DateTime(2026, 1, 2, 9), Rating.good));
-      await logs.append(logFor(card.id, DateTime(2026, 1, 3, 10), Rating.easy));
+        await logs.append(
+          logFor(card.id, DateTime(2026, 1, 2, 9), Rating.good),
+        );
+        await logs.append(
+          logFor(card.id, DateTime(2026, 1, 3, 10), Rating.easy),
+        );
 
-      final count = await logs.countNewCardsIntroducedToday(
-        now: now,
-        dayCutoffHour: 4,
-      );
-      expect(count, 0);
-    });
+        final count = await logs.countNewCardsIntroducedToday(
+          now: now,
+          dayCutoffHour: 4,
+        );
+        expect(count, 0);
+      },
+    );
 
     test('the course filter excludes another course', () async {
       final (course, _, _) = await seedCard('Target');
       final (other, _, otherCard) = await seedCard('Other');
       final now = DateTime(2026, 1, 2, 12);
 
-      await logs.append(logFor(otherCard.id, DateTime(2026, 1, 2, 9), Rating.good));
+      await logs.append(
+        logFor(otherCard.id, DateTime(2026, 1, 2, 9), Rating.good),
+      );
 
       final count = await logs.countNewCardsIntroducedToday(
         now: now,
@@ -397,8 +406,9 @@ void main() {
       expect(
         count,
         0,
-        reason: '${Scheduler.dayIndex(now, 4)} != '
-            '${Scheduler.dayIndex(DateTime(2026, 1, 2, 2), 4)}',
+        reason:
+            '${Scheduler.dayIndex(now)} != '
+            '${Scheduler.dayIndex(DateTime(2026, 1, 2, 2))}',
       );
     });
   });

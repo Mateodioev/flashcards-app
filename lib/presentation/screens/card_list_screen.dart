@@ -1,11 +1,8 @@
 import 'package:flashcards2/domain/entities/card.dart' as domain;
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
-import 'package:flashcards2/domain/enums.dart';
-import 'package:flashcards2/domain/scheduling/scheduler.dart';
-import 'package:flashcards2/domain/scheduling/session.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/card_editor_screen.dart';
-import 'package:flashcards2/presentation/screens/review_screen.dart';
+import 'package:flashcards2/presentation/study_session_launcher.dart';
 import 'package:flashcards2/presentation/widgets/card_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,7 +28,7 @@ class CardListScreen extends ConsumerWidget {
         children: <Widget>[
           FloatingActionButton.extended(
             heroTag: 'study',
-            onPressed: () => _startSession(context, ref, theme),
+            onPressed: () => _studyTheme(context, ref, theme),
             icon: const Icon(Icons.play_arrow),
             label: const Text('Study'),
           ),
@@ -149,62 +146,30 @@ Future<void> _openEditor(
   }
 }
 
-/// Builds a session for this theme and opens the review screen.
-///
-/// New and due cards are fetched separately because they are genuinely
-/// different populations: a card gets a schedule row only on its first review,
-/// so an inner join on schedules would hide every card in a new theme.
-Future<void> _startSession(
+/// Resolves the theme's course and opens a single-theme study session.
+Future<void> _studyTheme(
   BuildContext context,
   WidgetRef ref,
   domain.Theme theme,
 ) async {
-  final repository = ref.read(cardRepositoryProvider);
-  final now = DateTime.now();
-
-  final due = await repository.findDueEntries(
-    dueBefore: now,
-    themeId: theme.id,
-  );
-  final fresh = await repository.findNewEntries(themeId: theme.id);
-
-  // New-card intake is the course's business, and the course owns the cap.
   final course = await ref
       .read(courseRepositoryProvider)
       .findById(theme.courseId);
-
-  final session = SessionBuilder.build(
-    request: SessionRequest(
-      now: now,
-      themeId: theme.id,
-      interleaveMode: course?.interleaveMode ?? InterleaveMode.blocked,
-      newCardsPerDay: course?.newCardsPerDay ?? 0,
-    ),
-    due: due,
-    fresh: fresh,
-  );
-
-  if (!context.mounted) return;
-
-  if (session.isEmpty) {
+  if (course == null) {
+    if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Nothing to study here yet.')));
+    ).showSnackBar(const SnackBar(content: Text('Course no longer exists.')));
     return;
   }
 
-  await Navigator.of(context).push<void>(
-    MaterialPageRoute<void>(
-      builder: (_) => ReviewScreen(
-        items: session.items,
-        scheduler: const Scheduler(),
-        barrierEnabled: false,
-      ),
-    ),
+  if (!context.mounted) return;
+  await startStudySession(
+    context: context,
+    ref: ref,
+    course: course,
+    theme: theme,
   );
-  if (context.mounted) {
-    ref.invalidate(cardsProvider(theme.id));
-  }
 }
 
 /// Re-exported so screens importing this file can reference the domain type

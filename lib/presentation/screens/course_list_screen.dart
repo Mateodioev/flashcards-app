@@ -5,6 +5,7 @@ import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/card_list_screen.dart';
 import 'package:flashcards2/presentation/screens/image_import_screen.dart';
 import 'package:flashcards2/presentation/screens/settings_screen.dart';
+import 'package:flashcards2/presentation/study_session_launcher.dart';
 import 'package:flashcards2/presentation/widgets/card_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -96,10 +97,25 @@ class ThemeListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(course.name)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createTheme(context, ref, course),
-        icon: const Icon(Icons.add),
-        label: const Text('Theme'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          FloatingActionButton.extended(
+            heroTag: 'study-course',
+            onPressed: () =>
+                startStudySession(context: context, ref: ref, course: course),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Study'),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'addTheme',
+            onPressed: () => _createTheme(context, ref, course),
+            icon: const Icon(Icons.add),
+            label: const Text('Theme'),
+          ),
+        ],
       ),
       body: themes.when(
         loading: () => const Center(child: CircularProgressIndicator()),
