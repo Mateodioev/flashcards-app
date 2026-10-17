@@ -40,3 +40,4 @@ Add a `Study` action on a course (`ThemeListScreen`) that studies every theme in
   - R3-2 fixed: `card_list_screen._studyTheme` restores graceful degradation — a missing course falls back to a zero-intake blocked course instead of hard-blocking.
   - R3-3 fixed: removed the dead `themeId` parameter from `countNewCardsIntroducedToday`/`firstReviewDates` (the cap is course-scoped), and added a theme-scoped `Study` widget test proving `themeId` scoping.
 - L9: Verification after follow-up: `dart analyze` clean; `flutter test` 279 passed, 4 skipped.
+- L10: RDD assess on `7351e15..HEAD` (follow-up commit `7b4b004`): risk `medium`, `review_due=false` (`under_budget`, 104 changed lines). No native review due; boundary stays at `7351e15`.
