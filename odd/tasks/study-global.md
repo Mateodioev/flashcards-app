@@ -27,3 +27,4 @@ Add a `Study` action on the main screen (`CourseListScreen`) that studies every 
 - L2 (approved): "Plan perfecto!, continua"
 - L3: Decisions D1 (course-contiguous), D2 (reviews first), D3 (global ceiling from span), D4 (non-archived only), D5 (no ReviewLog migration) — approved.
 - L4: Verified: `dart analyze` clean; `flutter test` 289 passed, 4 skipped. Work-unit commits: `eb9673d`, `e5ca990`, `e0c7990`.
+- L5: RDD assess on `064035c..HEAD`: risk `medium`, `review_due=false` (`under_budget`). No native review due; boundary stays at `064035c`.
