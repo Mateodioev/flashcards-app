@@ -97,7 +97,9 @@ typedef CardSearchQuery = ({String text, int? courseId, int? themeId});
 /// the provider never becomes a "list every card" back door.
 @riverpod
 Future<List<ScopedCard>> cardSearchResults(Ref ref, CardSearchQuery query) {
-  if (query.text.trim().isEmpty) {
+  // Short-circuit to avoid a wasted repository round-trip; the authoritative
+  // semantics still live in `cardsMatchingQuery`.
+  if (isBlankQuery(query.text)) {
     return Future.value(const <ScopedCard>[]);
   }
   return ref

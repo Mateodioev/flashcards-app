@@ -1,6 +1,13 @@
 import 'package:flashcards2/domain/entities/card_search.dart';
 import 'package:flashcards2/presentation/markup/math_markup.dart';
 
+/// True when [query] carries nothing searchable: empty or whitespace only.
+///
+/// The single owner of the blank rule. The matcher, the provider's
+/// short-circuit and the screen's idle state all read this, so the rule
+/// cannot drift apart in three places.
+bool isBlankQuery(String query) => query.trim().isEmpty;
+
 /// Filters [candidates] down to the cards matching [query].
 ///
 /// Matching reads the plain-text projection of both sides of the card (see
@@ -16,8 +23,8 @@ List<ScopedCard> cardsMatchingQuery(
   String query,
   List<ScopedCard> candidates,
 ) {
+  if (isBlankQuery(query)) return const [];
   final normalized = query.trim().toLowerCase();
-  if (normalized.isEmpty) return const [];
 
   bool matches(String source) =>
       toPlainText(source).toLowerCase().contains(normalized);

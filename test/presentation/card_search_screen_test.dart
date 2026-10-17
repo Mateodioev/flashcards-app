@@ -4,9 +4,9 @@ import 'package:flashcards2/data/database.dart';
 import 'package:flashcards2/data/repositories/drift_card_repository.dart';
 import 'package:flashcards2/data/repositories/drift_course_repository.dart';
 import 'package:flashcards2/domain/entities/card.dart' as domain;
+import 'package:flashcards2/domain/entities/card_search.dart';
 import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
-import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/card_editor_screen.dart';
 import 'package:flashcards2/presentation/screens/card_search_screen.dart';
@@ -14,6 +14,8 @@ import 'package:flashcards2/presentation/screens/course_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../fixtures/authoring.dart';
 
 /// Global card search, end to end against a real in-memory database (T5.7).
 ///
@@ -44,27 +46,11 @@ void main() {
   }
 
   Future<Course> seedCourse(String name, {bool archived = false}) {
-    return courses.create(
-      Course(
-        id: 0,
-        name: name,
-        createdAt: DateTime(2026),
-        newCardsPerDay: 5,
-        interleaveMode: InterleaveMode.blocked,
-        archived: archived,
-      ),
-    );
+    return seedAuthoringCourse(courses, name, archived: archived);
   }
 
   Future<domain.Theme> seedTheme(Course course, String name) {
-    return cards.createTheme(
-      domain.Theme(
-        id: 0,
-        courseId: course.id,
-        name: name,
-        createdAt: DateTime(2026),
-      ),
-    );
+    return seedAuthoringTheme(cards, course, name);
   }
 
   Future<domain.Card> seedCard(
@@ -72,17 +58,7 @@ void main() {
     String front,
     String back,
   ) {
-    return cards.createCard(
-      domain.Card(
-        id: 0,
-        themeId: theme.id,
-        front: front,
-        back: back,
-        source: CardSource.manual,
-        createdAt: DateTime(2026),
-        updatedAt: DateTime(2026),
-      ),
-    );
+    return seedAuthoringCard(cards, theme, front, back: back);
   }
 
   Future<void> openSearch(WidgetTester tester) async {
@@ -215,5 +191,75 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CardEditorScreen), findsOneWidget);
+  });
+
+  testWidgets('an archived course never appears as a scope chip', (
+    tester,
+  ) async {
+    await seedCourse('Live');
+    await seedCourse('Archived', archived: true);
+
+    await openSearch(tester);
+
+    expect(find.text('Live'), findsOneWidget);
+    expect(find.text('Archived'), findsNothing);
+  });
+
+  testWidgets('clearing the course resets the theme, widening results again',
+      (tester) async {
+    final physics = await seedCourse('Physics');
+    final optics = await seedTheme(physics, 'Optics');
+    final wave = await seedTheme(physics, 'Waves');
+    await seedCard(optics, 'light bends', 'refraction');
+    await seedCard(wave, 'light travels', 'wavefront');
+
+    await openSearch(tester);
+    await type(tester, 'light');
+    await tester.tap(find.text('Physics'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Optics'));
+    await tester.pumpAndSettle();
+    expect(find.text('light travels'), findsNothing);
+
+    // Going back to all courses must clear the now-stale theme id, or the
+    // invisible theme scope would silently hide half the results.
+    await tester.tap(find.text('All courses'));
+    await tester.pumpAndSettle();
+    expect(find.text('light bends'), findsOneWidget);
+    expect(find.text('light travels'), findsOneWidget);
+  });
+
+  testWidgets('a failing search reports the error and retry recovers',
+      (tester) async {
+    var attempts = 0;
+    final override = cardSearchResultsProvider(
+      (text: 'mars', courseId: null, themeId: null),
+    ).overrideWith((ref) {
+      attempts++;
+      if (attempts == 1) {
+        return Future<List<ScopedCard>>.error(StateError('disk full'));
+      }
+      return Future<List<ScopedCard>>.value(const []);
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(db), override],
+        child: const MaterialApp(home: CourseListScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Search cards'));
+    await tester.pumpAndSettle();
+    await type(tester, 'mars');
+
+    expect(find.text('Could not run the search.'), findsOneWidget);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('No results for "mars"'), findsOneWidget);
+    expect(find.text('Could not run the search.'), findsNothing);
+    expect(attempts, greaterThan(1), reason: 'retry must re-run the lookup');
   });
 }

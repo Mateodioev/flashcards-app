@@ -5,9 +5,9 @@ import 'package:flashcards2/data/repositories/drift_card_repository.dart';
 import 'package:flashcards2/data/repositories/drift_course_repository.dart';
 import 'package:flashcards2/domain/entities/card.dart';
 import 'package:flashcards2/domain/entities/course.dart';
-import 'package:flashcards2/domain/entities/theme.dart';
-import 'package:flashcards2/domain/enums.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../fixtures/authoring.dart';
 
 /// Scoped candidate fetch for the global card search (T5.7, S5).
 ///
@@ -32,38 +32,12 @@ void main() {
   });
 
   Future<Course> seedCourse(String name, {bool archived = false}) {
-    return courses.create(
-      Course(
-        id: 0,
-        name: name,
-        createdAt: DateTime(2026),
-        newCardsPerDay: 5,
-        interleaveMode: InterleaveMode.blocked,
-        archived: archived,
-      ),
-    );
+    return seedAuthoringCourse(courses, name, archived: archived);
   }
 
   Future<Card> seedCard(Course course, String themeName, String front) async {
-    final theme = await cards.createTheme(
-      Theme(
-        id: 0,
-        courseId: course.id,
-        name: themeName,
-        createdAt: DateTime(2026),
-      ),
-    );
-    return await cards.createCard(
-      Card(
-        id: 0,
-        themeId: theme.id,
-        front: front,
-        back: 'back',
-        source: CardSource.manual,
-        createdAt: DateTime(2026),
-        updatedAt: DateTime(2026),
-      ),
-    );
+    final theme = await seedAuthoringTheme(cards, course, themeName);
+    return await seedAuthoringCard(cards, theme, front);
   }
 
   group('findCardsWithContext', () {

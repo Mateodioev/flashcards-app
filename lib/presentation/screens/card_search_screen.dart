@@ -1,6 +1,7 @@
 import 'package:flashcards2/domain/entities/card_search.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/card_editor_screen.dart';
+import 'package:flashcards2/presentation/search/card_search.dart';
 import 'package:flashcards2/presentation/widgets/card_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,6 +62,8 @@ class _CardSearchScreenState extends ConsumerState<CardSearchScreen> {
             hintText: 'Search cards',
             border: InputBorder.none,
           ),
+          // The empty body is intentional: rebuild so `_query` re-reads the
+          // controller's text and the results provider gets the new record.
           onChanged: (_) => setState(() {}),
         ),
         actions: <Widget>[
@@ -87,7 +90,7 @@ class _CardSearchScreenState extends ConsumerState<CardSearchScreen> {
   }
 
   Widget _buildResults(AsyncValue<List<ScopedCard>> results) {
-    if (_controller.text.trim().isEmpty) {
+    if (isBlankQuery(_controller.text)) {
       return const _IdleState();
     }
     return results.when(
