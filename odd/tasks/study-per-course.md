@@ -29,4 +29,9 @@ Add a `Study` action on a course (`ThemeListScreen`) that studies every theme in
 - L2 (approved): "El plan es perfecto, continua. Si aplica las dos correcciones de consistencia"
 - L3: Plan reviewed and approved; scope = course Study + the two consistency corrections; global all-courses Study deferred.
 - L4: Verified: `dart analyze` clean; `flutter test` 278 passed, 4 skipped. Two work-unit commits: `68de3d0`, `15074f2`.
-- L5: RDD assess on `9686cce..HEAD`: risk `medium`, `review_due=false` (`under_budget`). No native review due; boundary stays at `9686cce`. Self-verification stands (analyze + full suite).
+- L5: RDD assess on `9686cce..HEAD`: risk `medium`, `review_due=false` (`under_budget`). User then explicitly requested the native review; consented `granted`.
+- L6: Native review `review-af2f5c84d30e7deb` (lens `review-reliability`): **approved**, acknowledged, authority burned (`gentle-ai.review-acknowledged/v1`, consumed revision `63880ce…`). Reviewed boundary advances past `7351e15`.
+- L7: Advisory (non-blocking) findings from the review, to treat as separate later work:
+  - R3-1 (reliability): `course_study_test.dart:145` seeds the "already introduced" log with wall-clock `DateTime.now()`, so the daily-allowance test can flake across the cutoff boundary.
+  - R3-2 (reliability): theme `Study` now hard-blocks with "Course no longer exists." when `findById(theme.courseId)` is null, instead of the old graceful degradation.
+  - R3-3 (reliability): no behavioral coverage for the theme-scoped path of `startStudySession` (themeId scoping, `ref.invalidate`, null-course branch) and the `themeId` parameter of `countNewCardsIntroducedToday`.
