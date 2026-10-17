@@ -16,15 +16,16 @@ Add a `Study` action on a course (`ThemeListScreen`) that studies every theme in
 
 ## Tasks
 
-- T1 (S3) Add `ReviewLogRepository.countNewCardsIntroducedToday` + Drift implementation and tests — route: inline.
-- T2 (S2,S3,S5) Extract a shared study-session launcher from `CardListScreen` — route: inline.
-- T3 (S6) Refactor theme `Study` to use the launcher — route: inline.
-- T4 (S1,S4) Add course `Study` to `ThemeListScreen` — route: inline.
-- T5 (S1-S6) Presentation tests — route: inline.
-- T6 (S1-S6) Update `docs/plan.md` — route: inline.
+- [x] T1 (S3) `ReviewLogRepository.countNewCardsIntroducedToday` + Drift implementation and tests — route: inline — commit `68de3d0`.
+- [x] T2 (S2,S3,S5) Shared study-session launcher extracted from `CardListScreen` — route: inline — commit `15074f2`.
+- [x] T3 (S6) Theme `Study` refactored to use the launcher — route: inline — commit `15074f2`.
+- [x] T4 (S1,S4) Course `Study` added to `ThemeListScreen` — route: inline — commit `15074f2`.
+- [x] T5 (S1-S6) Presentation tests — route: inline — commit `15074f2`.
+- [x] T6 (S1-S6) `docs/plan.md` updated — route: inline — commit `15074f2`.
 
 ## Log
 
 - L1: "Implementa primero Study por curso, primero planea el cambio y dividelo en todo list para revisarlo y ver si necesita algunas correcciones"
 - L2 (approved): "El plan es perfecto, continua. Si aplica las dos correcciones de consistencia"
 - L3: Plan reviewed and approved; scope = course Study + the two consistency corrections; global all-courses Study deferred.
+- L4: Verified: `dart analyze` clean; `flutter test` 278 passed, 4 skipped. Two work-unit commits: `68de3d0`, `15074f2`.
