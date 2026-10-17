@@ -22,6 +22,22 @@ class DueScheduleRow {
   final DateTime due;
 }
 
+/// A card joined with the theme and course it belongs to.
+///
+/// A data-layer shape, like [DueScheduleRow]: the DAO stays free of `domain/`
+/// and the repository maps row types into entities.
+class ScopedCardRow {
+  const new({
+    required this.card,
+    required this.theme,
+    required this.course,
+  });
+
+  final CardRow card;
+  final ThemeRow theme;
+  final CourseRow course;
+}
+
 /// Create/read/update/delete for the course -> theme -> card -> image
 /// hierarchy, plus the card's schedule state.
 @DriftAccessor(tables: [Themes, Cards, CardImages, ScheduleStates])
@@ -52,6 +68,43 @@ class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
 
   Future<List<CardRow>> cardsByTheme(int themeId) {
     return (select(cards)..where((t) => t.themeId.equals(themeId))).get();
+  }
+
+  /// Every card of a non-archived course, joined with its theme and course.
+  ///
+  /// Feeds the global card search: the search screen matches and presents,
+  /// this query scopes and orders. Ordered by course, theme and card id so a
+  /// re-run of the same query is byte-stable rather than dependent on
+  /// SQLite's row order.
+  Future<List<ScopedCardRow>> cardsInScope({int? courseId, int? themeId}) {
+    final query =
+        select(cards).join([
+            innerJoin(themes, themes.id.equalsExp(cards.themeId)),
+            innerJoin(courses, courses.id.equalsExp(themes.courseId)),
+          ])
+          ..where(courses.archived.equals(false))
+          ..orderBy([
+            OrderingTerm.asc(courses.id),
+            OrderingTerm.asc(themes.id),
+            OrderingTerm.asc(cards.id),
+          ]);
+
+    if (courseId != null) {
+      query.where(courses.id.equals(courseId));
+    }
+    if (themeId != null) {
+      query.where(themes.id.equals(themeId));
+    }
+
+    return query.get().then(
+      (rows) => rows.map((row) {
+        return ScopedCardRow(
+          card: row.readTable(cards),
+          theme: row.readTable(themes),
+          course: row.readTable(courses),
+        );
+      }).toList(),
+    );
   }
 
   Future<CardRow?> cardById(int id) {

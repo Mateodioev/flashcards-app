@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flashcards2/data/daos/card_dao.dart';
 import 'package:flashcards2/data/database.dart';
 import 'package:flashcards2/domain/entities/card.dart';
+import 'package:flashcards2/domain/entities/card_search.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
 import 'package:flashcards2/domain/repositories/card_repository.dart';
@@ -65,6 +66,23 @@ class DriftCardRepository implements CardRepository {
   Future<List<Card>> findCardsByTheme(int themeId) async {
     final rows = await _dao.cardsByTheme(themeId);
     return rows.map(_cardToEntity).toList();
+  }
+
+  @override
+  Future<List<ScopedCard>> findCardsWithContext({
+    int? courseId,
+    int? themeId,
+  }) async {
+    final rows = await _dao.cardsInScope(courseId: courseId, themeId: themeId);
+    return rows
+        .map(
+          (row) => ScopedCard(
+            card: _cardToEntity(row.card),
+            theme: _themeToEntity(row.theme),
+            courseName: row.course.name,
+          ),
+        )
+        .toList();
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flashcards2/domain/entities/card.dart';
+import 'package:flashcards2/domain/entities/card_search.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
 import 'package:flashcards2/domain/scheduling/due_queue.dart';
@@ -21,6 +22,13 @@ abstract interface class CardRepository {
   Future<Card?> findCardById(int id);
 
   Future<List<Card>> findCardsByTheme(int themeId);
+
+  /// Every card of a non-archived course with its theme and course context.
+  ///
+  /// The candidate set for the global card search: matching happens on top of
+  /// this list, so scoping, archived-course exclusion and the deterministic
+  /// course/theme/card ordering are guaranteed here.
+  Future<List<ScopedCard>> findCardsWithContext({int? courseId, int? themeId});
 
   Future<Card> createCard(Card card);
 

@@ -1,4 +1,5 @@
 import 'package:flashcards2/domain/entities/card.dart' as domain;
+import 'package:flashcards2/domain/entities/card_search.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart' as sched;
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
 import 'package:flashcards2/domain/repositories/card_repository.dart';
@@ -32,6 +33,12 @@ class _FailingCardRepository implements CardRepository {
   @override
   Future<List<domain.Card>> findCardsByTheme(int themeId) async =>
       <domain.Card>[];
+
+  @override
+  Future<List<ScopedCard>> findCardsWithContext({
+    int? courseId,
+    int? themeId,
+  }) async => <ScopedCard>[];
 
   @override
   Future<domain.Theme?> findThemeById(int id) async => null;
