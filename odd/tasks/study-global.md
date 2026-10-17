@@ -34,3 +34,9 @@ Add a `Study` action on the main screen (`CourseListScreen`) that studies every 
   - R3-daily-ceiling (reliability): the global new-card ceiling is per-session and does not subtract new cards already introduced today, so the "daily" semantics of the global bound are unenforced.
   - R3-stale-invalidate (reliability): `startGlobalStudySession` never invalidates any provider after the session, unlike the theme path.
   - R3-counter-test (reliability): the aggregate-counter test only seeds one introduction per course, leaving multi-introduction accumulation unproved.
+- L8: Follow-up on the four advisory findings (user: "Ataca los 4 hallazgos"):
+  - R3-dedup-cap fixed: `GlobalSessionBuilder` builds `reviewedIds` from the full due population before capping; added a test proving a due+fresh card beyond `maxReviewCards` is not re-introduced.
+  - R3-daily-ceiling fixed: the launcher subtracts total already-introduced-today from the span-derived ceiling; added a widget test proving five prior introductions zero out the daily budget.
+  - R3-stale-invalidate fixed: `startGlobalStudySession` invalidates `coursesProvider` after the session.
+  - R3-counter-test fixed: the aggregate-counter test now seeds two introductions in one course and asserts the accumulated count is 2.
+- L9: Verification after follow-up: `dart analyze` clean; `flutter test` 292 passed, 4 skipped. Commit `34a2bd9`.
