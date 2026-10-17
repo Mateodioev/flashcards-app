@@ -1,5 +1,7 @@
 import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
+import 'package:flashcards2/domain/onboarding/memory_span.dart';
+import 'package:flashcards2/domain/scheduling/global_session.dart';
 import 'package:flashcards2/domain/scheduling/scheduler.dart';
 import 'package:flashcards2/domain/scheduling/session.dart';
 import 'package:flashcards2/presentation/providers.dart';
@@ -80,4 +82,73 @@ Future<void> startStudySession({
   if (theme != null) {
     ref.invalidate(cardsProvider(theme.id));
   }
+}
+
+/// Builds and opens one session spanning every non-archived course.
+///
+/// Policy stays per course (each course's interleave mode and intake cap), and
+/// a global ceiling derived from the working-memory span bounds total new-card
+/// intake so a wide account cannot flood a session with new material.
+Future<void> startGlobalStudySession({
+  required BuildContext context,
+  required WidgetRef ref,
+}) async {
+  final cardRepository = ref.read(cardRepositoryProvider);
+  final courseRepository = ref.read(courseRepositoryProvider);
+  final reviewLogRepository = ref.read(reviewLogRepositoryProvider);
+  final now = DateTime.now();
+  final settings = await ref.read(settingsRepositoryProvider).read();
+
+  final courses = await courseRepository.findAll();
+  final alreadyToday = await reviewLogRepository
+      .countNewCardsIntroducedTodayByCourse(
+        now: now,
+        dayCutoffHour: settings.dayCutoffHour,
+      );
+
+  final policies = <CourseStudyPolicy>[
+    for (final course in courses)
+      CourseStudyPolicy(
+        courseId: course.id,
+        interleaveMode: course.interleaveMode,
+        newCardsPerDay: course.newCardsPerDay,
+        newCardsAlreadyToday: alreadyToday[course.id] ?? 0,
+      ),
+  ];
+
+  final span = settings.memorySpan ?? MemorySpanDefaults.fallbackSpan;
+  final globalCeiling = MemorySpanDefaults.newCardsPerDay(span);
+
+  final due = await cardRepository.findDueEntries(dueBefore: now);
+  final fresh = await cardRepository.findNewEntries();
+
+  final session = GlobalSessionBuilder.build(
+    request: GlobalSessionRequest(
+      policies: policies,
+      globalNewCardCeiling: globalCeiling,
+    ),
+    due: due,
+    fresh: fresh,
+  );
+
+  if (!context.mounted) return;
+
+  if (session.isEmpty) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Nothing to study here yet.')));
+    return;
+  }
+
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(
+      builder: (_) => ReviewScreen(
+        items: session.items,
+        scheduler: Scheduler(
+          SchedulerConfig(dayCutoffHour: settings.dayCutoffHour),
+        ),
+        barrierEnabled: settings.forcedGenerationBarrier,
+      ),
+    ),
+  );
 }

@@ -45,7 +45,7 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithText(FloatingActionButton, 'Course'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Biology');
@@ -60,7 +60,7 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithText(FloatingActionButton, 'Course'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '   ');
@@ -75,7 +75,7 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithText(FloatingActionButton, 'Course'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'History');
     await tester.tap(find.text('Create'));

@@ -355,6 +355,15 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
   `dayCutoffHour` — and the launcher subtracts it from `newCardsPerDay`. The launcher also
   applies `forcedGenerationBarrier` and the configured `dayCutoffHour` to the scheduler.
   FSRS-5 itself is unchanged.*
+- [x] **T6.9** Global `Study` across all non-archived courses.
+  *Done: `presentation/screens/course_list_screen.dart` exposes a `Study` action, and
+  `presentation/study_session_launcher.dart:startGlobalStudySession` composes one session
+  across every non-archived course. Policy stays per course via `CourseStudyPolicy`, and
+  `GlobalSessionBuilder` (`domain/scheduling/global_session.dart`) keeps course blocks
+  contiguous (each with its own `interleaveMode`), leads with reviews, then draws new cards
+  from each course's remaining allowance under a global ceiling derived from the
+  working-memory span. `ReviewLogRepository.countNewCardsIntroducedTodayByCourse` supplies
+  the per-course daily ledger in one aggregate query. FSRS-5 itself is unchanged.*
 
 ## List 7 — Theming
 

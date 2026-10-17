@@ -40,10 +40,25 @@ class CourseListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createCourse(context, ref),
-        icon: const Icon(Icons.add),
-        label: const Text('Course'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          FloatingActionButton.extended(
+            heroTag: 'study-global',
+            onPressed: () =>
+                startGlobalStudySession(context: context, ref: ref),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Study'),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'addCourse',
+            onPressed: () => _createCourse(context, ref),
+            icon: const Icon(Icons.add),
+            label: const Text('Course'),
+          ),
+        ],
       ),
       body: courses.when(
         loading: () => const Center(child: CircularProgressIndicator()),
