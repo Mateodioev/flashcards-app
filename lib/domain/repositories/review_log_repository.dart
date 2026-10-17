@@ -18,7 +18,11 @@ abstract interface class ReviewLogRepository {
   Future<List<ReviewLog>> recent({int? courseId, int limit = 50});
 
   /// How many cards were introduced (received their first review) during the
-  /// scheduling day that contains [now], in one course, one theme, or all.
+  /// scheduling day that contains [now], in one course or across all courses.
+  ///
+  /// The new-card cap lives on the course, so the count is course-scoped rather
+  /// than theme-scoped: cards introduced in *any* of a course's themes count
+  /// against that course's daily allowance.
   ///
   /// [dayCutoffHour] shifts the day boundary the same way the scheduler does,
   /// so a 2am review counts as part of the previous day under a 4am cutoff.
@@ -26,6 +30,5 @@ abstract interface class ReviewLogRepository {
     required DateTime now,
     required int dayCutoffHour,
     int? courseId,
-    int? themeId,
   });
 }

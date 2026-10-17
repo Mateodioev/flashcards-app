@@ -7,6 +7,7 @@ import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
 import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/presentation/providers.dart';
+import 'package:flashcards2/presentation/screens/card_list_screen.dart';
 import 'package:flashcards2/presentation/screens/course_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,6 +79,26 @@ void main() {
         );
   }
 
+  Future<int> dueCard(int themeId, String front) async {
+    final id = await newCard(themeId, front);
+    await db
+        .into(db.scheduleStates)
+        .insert(
+          ScheduleStatesCompanion.insert(
+            cardId: Value(id),
+            due: DateTime(2020),
+          ),
+        );
+    return id;
+  }
+
+  Widget themeApp(domain.Theme theme) {
+    return ProviderScope(
+      overrides: [databaseProvider.overrideWithValue(db)],
+      child: MaterialApp(home: CardListScreen(theme: theme)),
+    );
+  }
+
   Widget app(Course course) {
     return ProviderScope(
       overrides: [databaseProvider.overrideWithValue(db)],
@@ -134,6 +155,11 @@ void main() {
 
     await newCard(themeA.id, 'a-new-1');
     final b1 = await newCard(themeB.id, 'b-new-1');
+
+    // Pin the cutoff to midnight so "today" is the calendar day and the
+    // wall-clock seed below is deterministic regardless of when the test runs.
+    final current = await settings.read();
+    await settings.update(current.copyWith(dayCutoffHour: 0));
 
     // b1 was already introduced today, so only a-new-1 remains.
     await db
@@ -198,5 +224,25 @@ void main() {
 
     expect(find.text('barrier-front'), findsOneWidget);
     expect(find.text('Answer first'), findsOneWidget);
+  });
+
+  testWidgets('theme Study scopes the session to that theme only', (
+    tester,
+  ) async {
+    final course = await seedCourse();
+    final (themeA, themeB) = await seedThemes(course.id);
+
+    await dueCard(themeA.id, 'theme-a-due');
+    await dueCard(themeB.id, 'theme-b-due');
+
+    await tester.pumpWidget(themeApp(themeA));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Study'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('theme-a-due'), findsOneWidget);
+    expect(find.text('theme-b-due'), findsNothing);
+    expect(find.text('1 of 1'), findsOneWidget);
   });
 }

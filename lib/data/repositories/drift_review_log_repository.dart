@@ -55,12 +55,8 @@ class DriftReviewLogRepository implements ReviewLogRepository {
     required DateTime now,
     required int dayCutoffHour,
     int? courseId,
-    int? themeId,
   }) async {
-    final firstReviews = await _dao.firstReviewDates(
-      courseId: courseId,
-      themeId: themeId,
-    );
+    final firstReviews = await _dao.firstReviewDates(courseId: courseId);
     final today = Scheduler.dayIndex(now, dayCutoffHour);
     return firstReviews
         .where((first) => Scheduler.dayIndex(first, dayCutoffHour) == today)

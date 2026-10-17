@@ -1,5 +1,7 @@
 import 'package:flashcards2/domain/entities/card.dart' as domain;
+import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
+import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/card_editor_screen.dart';
 import 'package:flashcards2/presentation/study_session_launcher.dart';
@@ -147,6 +149,12 @@ Future<void> _openEditor(
 }
 
 /// Resolves the theme's course and opens a single-theme study session.
+///
+/// A theme cannot normally exist without its course (the foreign key cascades),
+/// so the null branch is defensive. When it does happen the session still runs
+/// with a zero intake cap and blocked ordering — the same graceful degradation
+/// the pre-launcher code had — rather than blocking a learner whose due cards
+/// are still answerable.
 Future<void> _studyTheme(
   BuildContext context,
   WidgetRef ref,
@@ -155,19 +163,21 @@ Future<void> _studyTheme(
   final course = await ref
       .read(courseRepositoryProvider)
       .findById(theme.courseId);
-  if (course == null) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Course no longer exists.')));
-    return;
-  }
 
   if (!context.mounted) return;
   await startStudySession(
     context: context,
     ref: ref,
-    course: course,
+    course:
+        course ??
+        Course(
+          id: theme.courseId,
+          name: '',
+          createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+          newCardsPerDay: 0,
+          interleaveMode: InterleaveMode.blocked,
+          archived: false,
+        ),
     theme: theme,
   );
 }

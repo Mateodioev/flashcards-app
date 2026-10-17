@@ -35,3 +35,8 @@ Add a `Study` action on a course (`ThemeListScreen`) that studies every theme in
   - R3-1 (reliability): `course_study_test.dart:145` seeds the "already introduced" log with wall-clock `DateTime.now()`, so the daily-allowance test can flake across the cutoff boundary.
   - R3-2 (reliability): theme `Study` now hard-blocks with "Course no longer exists." when `findById(theme.courseId)` is null, instead of the old graceful degradation.
   - R3-3 (reliability): no behavioral coverage for the theme-scoped path of `startStudySession` (themeId scoping, `ref.invalidate`, null-course branch) and the `themeId` parameter of `countNewCardsIntroducedToday`.
+- L8: Follow-up on the three advisory findings (user: "Ataca los tres hallazgos"):
+  - R3-1 fixed: `course_study_test.dart` pins `dayCutoffHour` to 0 before seeding the wall-clock "already introduced" log, making the allowance test deterministic.
+  - R3-2 fixed: `card_list_screen._studyTheme` restores graceful degradation — a missing course falls back to a zero-intake blocked course instead of hard-blocking.
+  - R3-3 fixed: removed the dead `themeId` parameter from `countNewCardsIntroducedToday`/`firstReviewDates` (the cap is course-scoped), and added a theme-scoped `Study` widget test proving `themeId` scoping.
+- L9: Verification after follow-up: `dart analyze` clean; `flutter test` 279 passed, 4 skipped.

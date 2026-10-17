@@ -57,13 +57,13 @@ class ReviewLogDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// The earliest review instant for every card, optionally scoped to one
-  /// course or theme.
+  /// course.
   ///
   /// One row per card, so the repository can decide — with the day cutoff it
   /// receives — which of these instants fall on "today". A card's *first*
   /// review is when it was introduced, so this is the intake ledger rather than
   /// a simple review count.
-  Future<List<DateTime>> firstReviewDates({int? courseId, int? themeId}) {
+  Future<List<DateTime>> firstReviewDates({int? courseId}) {
     final firstReview = reviewLogs.reviewedAt.min();
     final query = selectOnly(reviewLogs)
       ..addColumns([firstReview])
@@ -74,9 +74,6 @@ class ReviewLogDao extends DatabaseAccessor<AppDatabase>
 
     if (courseId != null) {
       query.where(themes.courseId.equals(courseId));
-    }
-    if (themeId != null) {
-      query.where(cards.themeId.equals(themeId));
     }
 
     query.groupBy([reviewLogs.cardId]);
