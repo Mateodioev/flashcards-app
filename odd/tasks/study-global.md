@@ -40,3 +40,4 @@ Add a `Study` action on the main screen (`CourseListScreen`) that studies every 
   - R3-stale-invalidate fixed: `startGlobalStudySession` invalidates `coursesProvider` after the session.
   - R3-counter-test fixed: the aggregate-counter test now seeds two introductions in one course and asserts the accumulated count is 2.
 - L9: Verification after follow-up: `dart analyze` clean; `flutter test` 292 passed, 4 skipped. Commit `34a2bd9`.
+- L10: RDD assess on `ede9bf1..HEAD` (advisory fixes `34a2bd9`): risk `medium`, `review_due=false` (`under_budget`, 126 changed lines). No native review due; boundary stays at `ede9bf1`.
