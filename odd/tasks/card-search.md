@@ -36,3 +36,12 @@ Global search/filter across cards, per `docs/plan.md` T5.7: "Search/filter acros
   - R3-archived-course-chip-dead-end (reliability, WARNING): scope chips come from `coursesProvider`, which emits non-archived courses only, so no live dead-end — but the patch carried no evidence of that and no test pins that an archived course never appears in the chips.
   - R3-cascade-reset-untested (reliability, SUGGESTION): selecting/clearing a course clears the theme; the reset that prevents a stale themeId scoping results of another course is unasserted.
   - R3-search-error-retry-untested (reliability, WARNING): `_SearchError` + Retry invalidation has zero coverage; no test forces the results provider into its error state.
+- L9: Follow-up on the six advisory findings (user: "atack that"):
+  - R3-archived-course-chip-dead-end pinned: new widget test shows an archived course never appears as a scope chip (behavior was already correct via `coursesProvider`'s non-archived default; now covered).
+  - R3-cascade-reset pinned: new widget test narrows to a theme, then clears the course and proves results widen again.
+  - R3-search-error-retry pinned: new widget test overrides the results provider to fail once, asserts the retry UI, and asserts retry re-runs and recovers.
+  - R2-blank-guard-triplicated fixed: single `isBlankQuery` owner; matcher, provider short-circuit and screen idle state all call it.
+  - R2-duplicated-test-seed-helpers fixed: shared `test/fixtures/authoring.dart` consumed by both card-search test files.
+  - R2-empty-setstate-rebuild documented at the call site.
+- L10: Verification after follow-up: `dart analyze` clean; `flutter test` 317 passed, 4 skipped. Commit `18a2115`.
+- L11: RDD assess on `27e161c..HEAD` (advisory fixes): risk `medium`, `review_due=false` (`under_budget`, 224 changed lines). No review due; acknowledged boundary stays at `27e161c` (target tree covers `407b796..71f70e9`; `27e161c` is the post-review docs commit, unreviewed but passive).
