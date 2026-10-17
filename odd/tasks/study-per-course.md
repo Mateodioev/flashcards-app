@@ -29,3 +29,4 @@ Add a `Study` action on a course (`ThemeListScreen`) that studies every theme in
 - L2 (approved): "El plan es perfecto, continua. Si aplica las dos correcciones de consistencia"
 - L3: Plan reviewed and approved; scope = course Study + the two consistency corrections; global all-courses Study deferred.
 - L4: Verified: `dart analyze` clean; `flutter test` 278 passed, 4 skipped. Two work-unit commits: `68de3d0`, `15074f2`.
+- L5: RDD assess on `9686cce..HEAD`: risk `medium`, `review_due=false` (`under_budget`). No native review due; boundary stays at `9686cce`. Self-verification stands (analyze + full suite).
