@@ -106,8 +106,11 @@ Future<void> startGlobalStudySession({
         dayCutoffHour: settings.dayCutoffHour,
       );
 
+  // The global queue must not surface archived courses. `findAll` already
+  // defaults to non-archived, but the filter is explicit here so the contract
+  // does not silently depend on that default.
   final policies = <CourseStudyPolicy>[
-    for (final course in courses)
+    for (final course in courses.where((course) => !course.archived))
       CourseStudyPolicy(
         courseId: course.id,
         interleaveMode: course.interleaveMode,

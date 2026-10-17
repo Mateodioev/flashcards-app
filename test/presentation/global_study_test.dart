@@ -14,11 +14,15 @@ void main() {
   setUp(() => db = AppDatabase(NativeDatabase.memory()));
   tearDown(() => db.close());
 
-  Future<int> seedCourse(String name) {
+  Future<int> seedCourse(String name, {bool archived = false}) {
     return db
         .into(db.courses)
         .insert(
-          CoursesCompanion.insert(name: name, newCardsPerDay: const Value(10)),
+          CoursesCompanion.insert(
+            name: name,
+            newCardsPerDay: const Value(10),
+            archived: Value(archived),
+          ),
         );
   }
 
@@ -79,6 +83,27 @@ void main() {
 
     expect(find.text('b-due'), findsOneWidget);
     expect(find.text('2 of 2'), findsOneWidget);
+  });
+
+  testWidgets('archived courses are excluded from global Study', (
+    tester,
+  ) async {
+    final live = await seedCourse('Live');
+    final archived = await seedCourse('Archived', archived: true);
+    final liveTheme = await seedTheme(live, 'Live Theme');
+    final archivedTheme = await seedTheme(archived, 'Archived Theme');
+    await dueCard(liveTheme, 'live-due');
+    await dueCard(archivedTheme, 'archived-due');
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Study'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('live-due'), findsOneWidget);
+    expect(find.text('archived-due'), findsNothing);
+    expect(find.text('1 of 1'), findsOneWidget);
   });
 
   testWidgets('an empty account shows the nothing-to-study message', (
