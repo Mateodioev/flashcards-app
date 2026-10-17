@@ -559,6 +559,111 @@ final class CardByIdFamily extends $Family
   String toString() => r'cardByIdProvider';
 }
 
+/// Cards matching a [CardSearchQuery], ordered by course, theme and card id.
+///
+/// Scoping and archived-course exclusion live in the repository; matching
+/// semantics live in `cardsMatchingQuery`. A blank query returns nothing, so
+/// the provider never becomes a "list every card" back door.
+
+@ProviderFor(cardSearchResults)
+final cardSearchResultsProvider = CardSearchResultsFamily._();
+
+/// Cards matching a [CardSearchQuery], ordered by course, theme and card id.
+///
+/// Scoping and archived-course exclusion live in the repository; matching
+/// semantics live in `cardsMatchingQuery`. A blank query returns nothing, so
+/// the provider never becomes a "list every card" back door.
+
+final class CardSearchResultsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ScopedCard>>,
+          List<ScopedCard>,
+          FutureOr<List<ScopedCard>>
+        >
+    with $FutureModifier<List<ScopedCard>>, $FutureProvider<List<ScopedCard>> {
+  /// Cards matching a [CardSearchQuery], ordered by course, theme and card id.
+  ///
+  /// Scoping and archived-course exclusion live in the repository; matching
+  /// semantics live in `cardsMatchingQuery`. A blank query returns nothing, so
+  /// the provider never becomes a "list every card" back door.
+  CardSearchResultsProvider._({
+    required CardSearchResultsFamily super.from,
+    required CardSearchQuery super.argument,
+  }) : super(
+         retry: null,
+         name: r'cardSearchResultsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$cardSearchResultsHash();
+
+  @override
+  String toString() {
+    return r'cardSearchResultsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<ScopedCard>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<ScopedCard>> create(Ref ref) {
+    final argument = this.argument as CardSearchQuery;
+    return cardSearchResults(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CardSearchResultsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$cardSearchResultsHash() => r'ccf8f9a602d35ea512d01222d01c58bc365090b3';
+
+/// Cards matching a [CardSearchQuery], ordered by course, theme and card id.
+///
+/// Scoping and archived-course exclusion live in the repository; matching
+/// semantics live in `cardsMatchingQuery`. A blank query returns nothing, so
+/// the provider never becomes a "list every card" back door.
+
+final class CardSearchResultsFamily extends $Family
+    with
+        $FunctionalFamilyOverride<FutureOr<List<ScopedCard>>, CardSearchQuery> {
+  CardSearchResultsFamily._()
+    : super(
+        retry: null,
+        name: r'cardSearchResultsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Cards matching a [CardSearchQuery], ordered by course, theme and card id.
+  ///
+  /// Scoping and archived-course exclusion live in the repository; matching
+  /// semantics live in `cardsMatchingQuery`. A blank query returns nothing, so
+  /// the provider never becomes a "list every card" back door.
+
+  CardSearchResultsProvider call(CardSearchQuery query) =>
+      CardSearchResultsProvider._(argument: query, from: this);
+
+  @override
+  String toString() => r'cardSearchResultsProvider';
+}
+
 /// Persists onboarding outcomes into the settings row.
 
 @ProviderFor(onboardingService)

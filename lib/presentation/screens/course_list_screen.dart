@@ -3,6 +3,7 @@ import 'package:flashcards2/domain/entities/theme.dart' as domain;
 import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/card_list_screen.dart';
+import 'package:flashcards2/presentation/screens/card_search_screen.dart';
 import 'package:flashcards2/presentation/screens/image_import_screen.dart';
 import 'package:flashcards2/presentation/screens/settings_screen.dart';
 import 'package:flashcards2/presentation/study_session_launcher.dart';
@@ -22,6 +23,15 @@ class CourseListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Courses'),
         actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Search cards',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const CardSearchScreen(),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.auto_awesome_outlined),
             tooltip: 'Import from image',

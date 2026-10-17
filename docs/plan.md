@@ -305,8 +305,13 @@ Feature-document mirror: `odd/local-first-flashcards/tasks` in Engram, plus this
 - [x] **T5.6** Card list grouped Course → Theme.
   *Done. Navigation is Course → Theme → Cards; both sides of each card render through
   `CardContent`, so LaTeX previews in the list instead of showing raw dollar signs.*
-- [ ] **T5.7** Search/filter across cards.
-  *Not started. `toPlainText` already exists for indexing, but nothing consumes it yet.*
+- [x] **T5.7** Search/filter across cards.
+  *Done. App-bar search on `CourseListScreen` opens `CardSearchScreen`: free text
+  matched case-insensitively over the `toPlainText` projection of both sides —
+  so a phrase spanning `sum of $x^2$ total` is found — with cascading
+  course/theme chips, archived courses excluded in the join, and deterministic
+  course/theme/card ordering. Each result shows its Course › Theme trail and
+  renders through `CardContent`; tapping opens the card editor.*
 
 ## List 6 — Review engine
 

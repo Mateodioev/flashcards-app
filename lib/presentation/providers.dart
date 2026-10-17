@@ -6,6 +6,7 @@ import 'package:flashcards2/data/repositories/drift_review_log_repository.dart';
 import 'package:flashcards2/data/repositories/drift_settings_repository.dart';
 import 'package:flashcards2/domain/ai/ai_settings_service.dart';
 import 'package:flashcards2/domain/entities/card.dart';
+import 'package:flashcards2/domain/entities/card_search.dart';
 import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
@@ -15,6 +16,7 @@ import 'package:flashcards2/domain/repositories/card_repository.dart';
 import 'package:flashcards2/domain/repositories/course_repository.dart';
 import 'package:flashcards2/domain/repositories/review_log_repository.dart';
 import 'package:flashcards2/domain/repositories/settings_repository.dart';
+import 'package:flashcards2/presentation/search/card_search.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -79,6 +81,29 @@ Future<List<Card>> cards(Ref ref, int themeId) {
 @riverpod
 Future<Card?> cardById(Ref ref, int cardId) {
   return ref.watch(cardRepositoryProvider).findCardById(cardId);
+}
+
+/// One global card-search lookup: the free text plus an optional scope.
+///
+/// A record, so family caching compares by value — the search screen rebuilds
+/// the query with each keystroke and a repeated keystroke still hits the
+/// provider cache instead of re-running the query.
+typedef CardSearchQuery = ({String text, int? courseId, int? themeId});
+
+/// Cards matching a [CardSearchQuery], ordered by course, theme and card id.
+///
+/// Scoping and archived-course exclusion live in the repository; matching
+/// semantics live in `cardsMatchingQuery`. A blank query returns nothing, so
+/// the provider never becomes a "list every card" back door.
+@riverpod
+Future<List<ScopedCard>> cardSearchResults(Ref ref, CardSearchQuery query) {
+  if (query.text.trim().isEmpty) {
+    return Future.value(const <ScopedCard>[]);
+  }
+  return ref
+      .watch(cardRepositoryProvider)
+      .findCardsWithContext(courseId: query.courseId, themeId: query.themeId)
+      .then((candidates) => cardsMatchingQuery(query.text, candidates));
 }
 
 /// Persists onboarding outcomes into the settings row.
