@@ -413,12 +413,28 @@ void main() {
     });
 
     test('the aggregate counter keys introductions by course', () async {
-      final (courseA, _, cardA) = await seedCard('A');
+      final (courseA, themeA, cardA) = await seedCard('A');
       final (courseB, _, cardB) = await seedCard('B');
       final now = DateTime(2026, 1, 2, 12);
 
-      // A introduced today, B introduced yesterday, a third card for A today.
+      // A second card in course A, so the per-course accumulation path
+      // (counts[id] + 1) reaches a count above one.
+      final cardA2 = await cards.createCard(
+        Card(
+          id: 0,
+          themeId: themeA.id,
+          front: 'a2',
+          back: 'a2',
+          source: CardSource.manual,
+          createdAt: DateTime(2026),
+          updatedAt: DateTime(2026),
+        ),
+      );
+
       await logs.append(logFor(cardA.id, DateTime(2026, 1, 2, 9), Rating.good));
+      await logs.append(
+        logFor(cardA2.id, DateTime(2026, 1, 2, 10), Rating.good),
+      );
       await logs.append(logFor(cardB.id, DateTime(2026, 1, 1, 9), Rating.good));
 
       final counts = await logs.countNewCardsIntroducedTodayByCourse(
@@ -426,7 +442,7 @@ void main() {
         dayCutoffHour: 4,
       );
 
-      expect(counts[courseA.id], 1);
+      expect(counts[courseA.id], 2);
       expect(counts[courseB.id], isNull, reason: 'B was introduced yesterday');
     });
   });

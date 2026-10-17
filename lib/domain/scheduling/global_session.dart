@@ -83,8 +83,11 @@ abstract final class GlobalSessionBuilder {
       );
     }
 
+    // Deduplicate against the full due population, before capping: a due card
+    // must never be re-introduced as new, even when the review cap pushes it
+    // past this session's review portion.
+    final reviewedIds = reviewItems.map((item) => item.cardId).toSet();
     final cappedReviews = reviewItems.take(request.maxReviewCards).toList();
-    final reviewedIds = cappedReviews.map((item) => item.cardId).toSet();
 
     // --- New cards: per-course allowance, then the global ceiling. ---
     final freshByCourse = <int, List<DueEntry>>{};

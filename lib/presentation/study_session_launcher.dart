@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
 import 'package:flashcards2/domain/onboarding/memory_span.dart';
@@ -119,8 +121,17 @@ Future<void> startGlobalStudySession({
       ),
   ];
 
+  // The global ceiling is daily: it caps the total new cards introduced across
+  // every course today, so it must subtract what today has already introduced
+  // — the same "daily, not per-session" semantics the per-course allowances
+  // already carry.
   final span = settings.memorySpan ?? MemorySpanDefaults.fallbackSpan;
-  final globalCeiling = MemorySpanDefaults.newCardsPerDay(span);
+  final dailyCeiling = MemorySpanDefaults.newCardsPerDay(span);
+  final totalAlreadyToday = alreadyToday.values.fold<int>(
+    0,
+    (sum, c) => sum + c,
+  );
+  final globalCeiling = math.max(0, dailyCeiling - totalAlreadyToday);
 
   final due = await cardRepository.findDueEntries(dueBefore: now);
   final fresh = await cardRepository.findNewEntries();
@@ -154,4 +165,8 @@ Future<void> startGlobalStudySession({
       ),
     ),
   );
+
+  // Study changed schedule state across many courses; refresh the main course
+  // list so any progress/due surface it gains cannot stay stale.
+  ref.invalidate(coursesProvider);
 }

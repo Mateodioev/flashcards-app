@@ -112,5 +112,15 @@ void main() {
       expect(session.items.map((i) => i.cardId).toList(), [1]);
       expect(session.newCount, 0);
     });
+
+    test('a due+fresh card beyond the review cap is not re-introduced', () {
+      final session = GlobalSessionBuilder.build(
+        request: GlobalSessionRequest(policies: [policy(1)], maxReviewCards: 1),
+        due: [entry(1), entry(2)],
+        fresh: [entry(2)],
+      );
+      expect(session.items.map((i) => i.cardId).toList(), [1]);
+      expect(session.newCount, 0);
+    });
   });
 }

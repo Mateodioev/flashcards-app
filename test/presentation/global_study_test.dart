@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flashcards2/data/database.dart';
+import 'package:flashcards2/data/repositories/drift_settings_repository.dart';
+import 'package:flashcards2/domain/entities/scheduling.dart';
+import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/course_list_screen.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +50,14 @@ void main() {
           ),
         );
     return id;
+  }
+
+  Future<int> newCard(int themeId, String front) {
+    return db
+        .into(db.cards)
+        .insert(
+          CardsCompanion.insert(themeId: themeId, front: front, back: 'back'),
+        );
   }
 
   Widget app() {
@@ -104,6 +115,53 @@ void main() {
     expect(find.text('live-due'), findsOneWidget);
     expect(find.text('archived-due'), findsNothing);
     expect(find.text('1 of 1'), findsOneWidget);
+  });
+
+  testWidgets('the global daily ceiling subtracts cards introduced today', (
+    tester,
+  ) async {
+    final settings = DriftSettingsRepository(db);
+    final courseA = await seedCourse('Course A');
+    final courseB = await seedCourse('Course B');
+    final themeA = await seedTheme(courseA, 'Theme A');
+    final themeB = await seedTheme(courseB, 'Theme B');
+
+    // memorySpan 3 -> daily ceiling newCardsPerDay(3) == 5.
+    await settings.read();
+    await settings.update(
+      const AppSettings(
+        id: AppSettings.singletonId,
+        themeMode: AppThemeMode.system,
+        dayCutoffHour: 0,
+        memorySpan: 3,
+      ),
+    );
+
+    // Five cards introduced today in course A exhaust the global ceiling.
+    for (var i = 0; i < 5; i++) {
+      final id = await dueCard(themeA, 'a-due-$i');
+      await db
+          .into(db.reviewLogs)
+          .insert(
+            ReviewLogsCompanion.insert(
+              cardId: id,
+              rating: Rating.good,
+              reviewedAt: DateTime.now(),
+              state: ReviewState.review,
+            ),
+          );
+    }
+    await newCard(themeB, 'b-new');
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Study'));
+    await tester.pumpAndSettle();
+
+    // Only the five reviews: the daily ceiling (5 - 5 = 0) admits no new card.
+    expect(find.text('1 of 5'), findsOneWidget);
+    expect(find.text('b-new'), findsNothing);
   });
 
   testWidgets('an empty account shows the nothing-to-study message', (
