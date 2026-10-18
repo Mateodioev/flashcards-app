@@ -32,8 +32,8 @@ Source of truth: `docs/reminder_notifications_plan.md` (confirmed by user with i
 | T3 | Domain scheduler (pure): `notificationId`, `nextFireTime`, schedule plan; unit tests | S3, S5, S11, S12 | delegated (parallel w/ T2) | ✅ done | 6f6d851 · RED→GREEN 44 tests incl. DST spring-forward; seam check 397 green |
 | T4 | Gateway + reconciliation: `LocalNotificationGateway`, `ReminderSync` = cancelAll + reschedule; called on app start and on subscription change | S1, S4, S5, S9, S12 | inline | ✅ done | ca6a92c · RED→GREEN 3 sync tests, 402 total; manual device check pending (`pendingNotificationRequests()`) |
 | T5 | Permission flow: request on first enable, denied state, channel-disable detection + settings deep-link | S10 | inline | ✅ done | 0a7c245 · RED→GREEN 5 access tests, 407 total; device flows pending. Note: visible denial UI lands with T6; mechanisms + deep-link here |
-| T6 | Settings UI: Reminders section, add/edit/delete, time picker, scope picker | S2, S6, S7 | delegated (parallel w/ T8) | pending | |
-| T8 | Backup export/import for reminder subscriptions (D6) | S8 | delegated (parallel w/ T6) | pending | |
+| T6 | Settings UI: Reminders section, add/edit/delete, time picker, scope picker | S2, S6, S7 | delegated (parallel w/ T8) | ✅ done | 6ba599c · RED→GREEN 7 widget tests, seam 420; shared-codegen attribution settled by parent-owned regen |
+| T8 | Backup export/import for reminder subscriptions (D6) | S8 | delegated (parallel w/ T6) | ✅ done | 74cb70d · RED→GREEN 6 backup tests, ImportSummary.remindersSkipped; compile break on pre-existing backup_section_test fixed by parent (2 lines) |
 | T7 | Payload → study route: root navigatorKey, cold-start launch details, onboarding-gate-safe deferred routing | S11 | inline | pending | |
 
 ## Log

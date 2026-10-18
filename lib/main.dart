@@ -4,8 +4,13 @@ import 'package:flashcards2/data/notifications/reminder_time_zone.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/course_list_screen.dart';
 import 'package:flashcards2/presentation/screens/onboarding_screen.dart';
+import 'package:flashcards2/presentation/study_reminder_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// Root navigator handle (plan §3.4/T7): reminder taps route through it,
+/// deferred until the onboarding-gated home exists.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   // TZDateTime scheduling needs the zone database ready before the first
@@ -39,11 +44,20 @@ class _FlashcardsAppState extends ConsumerState<FlashcardsApp> {
   @override
   void initState() {
     super.initState();
-    // Plan §1: reconcile on every app start — backstop for reboots and time
-    // zone changes. Errors are swallowed here exactly like the onboarding
-    // gate below: a scheduling failure must never lock the learner out.
+    // Plan §1 + §3.4: wire the reminder tap handler BEFORE reconciling on
+    // every app start — the handler also delivers the cold-start payload via
+    // the gateway's launch-details check. Errors are swallowed here exactly
+    // like the onboarding gate below: a scheduling failure must never lock
+    // the learner out.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
+        await ref.read(notificationGatewayProvider).initialize(
+          onReminderTap: (payload) => routeReminderPayload(
+            payload,
+            navigatorKey: rootNavigatorKey,
+            ref: ref,
+          ),
+        );
         await ref.read(reminderRescheduleProvider)();
       } on Object catch (_) {
         // Best effort; the next save or app start reconciles again.
@@ -58,6 +72,7 @@ class _FlashcardsAppState extends ConsumerState<FlashcardsApp> {
 
     return MaterialApp(
       title: 'Flashcards',
+      navigatorKey: rootNavigatorKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
