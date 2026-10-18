@@ -15,6 +15,8 @@ import 'package:flashcards2/domain/entities/theme.dart';
 import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/domain/onboarding/onboarding_service.dart';
 import 'package:flashcards2/domain/reminders/notification_gateway.dart';
+import 'package:flashcards2/domain/reminders/reminder.dart';
+import 'package:flashcards2/domain/reminders/reminder_access.dart';
 import 'package:flashcards2/domain/reminders/reminder_repository.dart';
 import 'package:flashcards2/domain/reminders/reminder_sync.dart';
 import 'package:flashcards2/domain/repositories/card_repository.dart';
@@ -67,6 +69,34 @@ ReminderRepository reminderRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 NotificationGateway notificationGateway(Ref ref) {
   return LocalNotificationGateway();
+}
+
+/// Saves a reminder through the T5 permission flow, then reconciles (plan
+/// §1: every subscription change reschedules). The result carries the final
+/// access state so the UI can explain a denial or offer the settings
+/// deep-link for a muted channel.
+@Riverpod(keepAlive: true)
+Future<({ReminderSubscription saved, ReminderAccess access})> Function(
+  ReminderSubscription draft,
+) saveReminder(Ref ref) {
+  return (draft) async {
+    final result = await saveReminderWithAccess(
+      repository: ref.read(reminderRepositoryProvider),
+      gateway: ref.read(notificationGatewayProvider),
+      draft: draft,
+    );
+    await ref.read(reminderRescheduleProvider)();
+    return result;
+  };
+}
+
+/// Deletes a reminder, then reconciles.
+@Riverpod(keepAlive: true)
+Future<void> Function(int id) deleteReminder(Ref ref) {
+  return (id) async {
+    await ref.read(reminderRepositoryProvider).delete(id);
+    await ref.read(reminderRescheduleProvider)();
+  };
 }
 
 /// Cancels every scheduled reminder and reschedules from the database —

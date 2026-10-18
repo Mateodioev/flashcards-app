@@ -52,6 +52,13 @@ class ScheduledReminder {
       'firstFireTime: $firstFireTime, weekday: $weekday)';
 }
 
+/// Whether the OS will actually deliver a scheduled reminder right now:
+/// `granted` can notify; `permissionDenied` failed the Android 13+ runtime
+/// permission; `channelDisabled` has permission but the user muted the
+/// `study_reminders` channel itself (only the settings deep-link recovers
+/// that, plan T5/S10).
+enum ReminderAccess { granted, permissionDenied, channelDisabled }
+
 /// The only dependency the domain has on `flutter_local_notifications`. The
 /// concrete implementation lives in `lib/data/notifications/` so the scheduler
 /// and the reconciliation logic stay pure and unit-testable.
@@ -73,4 +80,12 @@ abstract class NotificationGateway {
 
   /// Ids the OS currently holds — verification/debug only (plan §1).
   Future<List<int>> pendingReminderIds();
+
+  /// Read-only access state; never shows a dialog (plan T5).
+  Future<ReminderAccess> accessState();
+
+  /// Android 13+ runtime permission request. True when the OS reports
+  /// notifications enabled afterwards; false when denied — including
+  /// silent deny after "don't ask again".
+  Future<bool> requestNotificationPermission();
 }

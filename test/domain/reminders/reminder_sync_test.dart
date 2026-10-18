@@ -30,6 +30,12 @@ class _FakeGateway implements NotificationGateway {
   Future<List<int>> pendingReminderIds() async => [
         for (final reminder in scheduled) reminder.id,
       ];
+
+  @override
+  Future<ReminderAccess> accessState() async => ReminderAccess.granted;
+
+  @override
+  Future<bool> requestNotificationPermission() async => true;
 }
 
 class _FakeReminderRepository implements ReminderRepository {

@@ -342,6 +342,143 @@ final class NotificationGatewayProvider
 String _$notificationGatewayHash() =>
     r'd8dc886357ae79dab5eecc3e2d4589b9976426bf';
 
+/// Saves a reminder through the T5 permission flow, then reconciles (plan
+/// §1: every subscription change reschedules). The result carries the final
+/// access state so the UI can explain a denial or offer the settings
+/// deep-link for a muted channel.
+
+@ProviderFor(saveReminder)
+final saveReminderProvider = SaveReminderProvider._();
+
+/// Saves a reminder through the T5 permission flow, then reconciles (plan
+/// §1: every subscription change reschedules). The result carries the final
+/// access state so the UI can explain a denial or offer the settings
+/// deep-link for a muted channel.
+
+final class SaveReminderProvider
+    extends
+        $FunctionalProvider<
+          Future<({ReminderAccess access, ReminderSubscription saved})>
+          Function(ReminderSubscription draft),
+          Future<({ReminderAccess access, ReminderSubscription saved})>
+          Function(ReminderSubscription draft),
+          Future<({ReminderAccess access, ReminderSubscription saved})>
+          Function(ReminderSubscription draft)
+        >
+    with
+        $Provider<
+          Future<({ReminderAccess access, ReminderSubscription saved})>
+          Function(ReminderSubscription draft)
+        > {
+  /// Saves a reminder through the T5 permission flow, then reconciles (plan
+  /// §1: every subscription change reschedules). The result carries the final
+  /// access state so the UI can explain a denial or offer the settings
+  /// deep-link for a muted channel.
+  SaveReminderProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'saveReminderProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$saveReminderHash();
+
+  @$internal
+  @override
+  $ProviderElement<
+    Future<({ReminderAccess access, ReminderSubscription saved})> Function(
+      ReminderSubscription draft,
+    )
+  >
+  $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+
+  @override
+  Future<({ReminderAccess access, ReminderSubscription saved})> Function(
+    ReminderSubscription draft,
+  )
+  create(Ref ref) {
+    return saveReminder(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(
+    Future<({ReminderAccess access, ReminderSubscription saved})> Function(
+      ReminderSubscription draft,
+    )
+    value,
+  ) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<
+            Future<({ReminderAccess access, ReminderSubscription saved})>
+            Function(ReminderSubscription draft)
+          >(value),
+    );
+  }
+}
+
+String _$saveReminderHash() => r'c6ffa2f45230c678029e439c0d64ce3aa65457ef';
+
+/// Deletes a reminder, then reconciles.
+
+@ProviderFor(deleteReminder)
+final deleteReminderProvider = DeleteReminderProvider._();
+
+/// Deletes a reminder, then reconciles.
+
+final class DeleteReminderProvider
+    extends
+        $FunctionalProvider<
+          Future<void> Function(int id),
+          Future<void> Function(int id),
+          Future<void> Function(int id)
+        >
+    with $Provider<Future<void> Function(int id)> {
+  /// Deletes a reminder, then reconciles.
+  DeleteReminderProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'deleteReminderProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$deleteReminderHash();
+
+  @$internal
+  @override
+  $ProviderElement<Future<void> Function(int id)> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Future<void> Function(int id) create(Ref ref) {
+    return deleteReminder(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Future<void> Function(int id) value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Future<void> Function(int id)>(
+        value,
+      ),
+    );
+  }
+}
+
+String _$deleteReminderHash() => r'fcd4f2f300f193bfa39a75b3bdc666ae43a8bfab';
+
 /// Cancels every scheduled reminder and reschedules from the database —
 /// the canonical reconciliation rule (plan §1). The returned closure is how
 /// every caller (app start, every subscription save/delete, restore after

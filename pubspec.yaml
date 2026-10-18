@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  app_settings: ^9.0.1
   cupertino_icons: ^2.0.0
   drift: ^2.35.2
   drift_flutter: ^0.3.1

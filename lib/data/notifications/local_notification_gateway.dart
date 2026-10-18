@@ -92,4 +92,39 @@ class LocalNotificationGateway implements NotificationGateway {
     final pending = await _plugin.pendingNotificationRequests();
     return [for (final request in pending) request.id];
   }
+
+  @override
+  Future<ReminderAccess> accessState() async {
+    await _ensureInitialized();
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    // Only Android is targeted; other platforms have no runtime gate here.
+    if (android == null) return ReminderAccess.granted;
+
+    if (!(await android.areNotificationsEnabled() ?? false)) {
+      return ReminderAccess.permissionDenied;
+    }
+    final channels = await android.getNotificationChannels() ?? const [];
+    AndroidNotificationChannel? ours;
+    for (final channel in channels) {
+      if (channel.id == channelId) {
+        ours = channel;
+        break;
+      }
+    }
+    // A never-used channel does not exist yet; nothing to mute.
+    if (ours != null && ours.importance == Importance.none) {
+      return ReminderAccess.channelDisabled;
+    }
+    return ReminderAccess.granted;
+  }
+
+  @override
+  Future<bool> requestNotificationPermission() async {
+    await _ensureInitialized();
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android == null) return true;
+    return (await android.requestNotificationsPermission()) ?? false;
+  }
 }
