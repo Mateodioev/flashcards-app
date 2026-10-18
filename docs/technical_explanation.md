@@ -8,7 +8,7 @@
 1. **Local-First & Zero Telemetry:** There are no user accounts, no cloud backend, and no tracking. All data is persisted locally in an embedded SQLite database via Drift.
 2. **Defeating the Fluency Illusion:** Learners routinely confuse familiarity with mastery (the "fluency illusion"). Flashcards2 counters this through generative recall barriers and anti-passive review mechanics.
 3. **Pure-Dart Domain Layer:** All business logic, memory algorithms, and session planning live in a pristine, pure-Dart domain layer with zero dependencies on Flutter or database frameworks, guaranteeing deterministic unit testing.
-4. **Native FSRS-5 Scheduling:** Scheduling relies on a mathematical port of the Free Spaced Repetition Scheduler v5 (FSRS-5), rather than heuristic exponential ladders.
+4. **FSRS-6 Scheduling with Verified Rollback:** Scheduling relies on the official `fsrs` package (FSRS-6) consumed behind a pure-Dart anti-corruption layer, with a frozen native FSRS-5 port retained in-tree as the verified rollback engine — never a heuristic interval ladder.
 
 ---
 
@@ -24,7 +24,7 @@ The application strictly implements clean architecture with inward-pointing depe
                                │ depends on
 ┌──────────────────────────────▼──────────────────────────────┐
 │                        Domain Layer                         │
-│   (Entities, Repository Interfaces, FSRS-5, Session Engine)  │
+│   (Entities, Repository Interfaces, FSRS-6, Session Engine)  │
 │          *** Pure Dart: Zero Flutter / Drift ***            │
 └──────────────────────────────▲──────────────────────────────┘
                                │ implemented by
@@ -38,7 +38,7 @@ The application strictly implements clean architecture with inward-pointing depe
 
 *   **`lib/domain/` (Pure Dart):**
     *   Houses domain models (`Course`, `Theme`, `Card`, `CardSchedule`, `ReviewLog`, `AppSettings`).
-    *   Contains the native **FSRS-5 scheduler** and session queue engines (`due_queue.dart`, `session.dart`, `global_session.dart`).
+    *   Contains the scheduling engine — the **FSRS-6 adapter** (`fsrs6_adapter.dart`, an ACL over `package:fsrs` 2.0.1), the frozen **FSRS-5 rollback port** (`fsrs5.dart`), the `MemoryEngine` contract, and session queue engines (`due_queue.dart`, `session.dart`, `global_session.dart`).
     *   Defines abstract repository contracts (`CardRepository`, `CourseRepository`, `ReviewLogRepository`, `SettingsRepository`, `AiClient`).
     *   Maintains cognitive calibration logic (working-memory span, metacognitive probe, prior knowledge classification).
 *   **`lib/data/` (Persistence & Infrastructure):**
@@ -55,9 +55,12 @@ The application strictly implements clean architecture with inward-pointing depe
 
 ---
 
-## 3. Spaced Repetition Engine: FSRS-5 Implementation
+## 3. Spaced Repetition Engine: FSRS-6 live, FSRS-5 frozen rollback
 
-The scheduling core is located in `lib/domain/scheduling/` and is split into the memory math (`fsrs5.dart`) and the step machine (`scheduler.dart`).
+> [!IMPORTANT]
+> **Since 2026-10-17 the live engine is FSRS-6**, provided by `package:fsrs` 2.0.1 behind the `Fsrs6SchedulerAdapter` anti-corruption layer (`fsrs6_adapter.dart`). The domain `Scheduler` (`scheduler.dart`) still owns the step state machine, due arithmetic, and the 4 AM day-cutoff; the package only advances $(S, D)$ and maps stability to intervals, behind the `MemoryEngine` contract (`memory_engine.dart`). Everything below documents the **frozen FSRS-5 port** (`fsrs5.dart`), retained as the verified rollback engine — its integration through `Scheduler` is gated by the `ROLLBACK GATE` test in `interval_history_test.dart`. Migration plan, decisions, and evidence: `docs/fsrs6_migration_plan.md`.
+
+The scheduling core is located in `lib/domain/scheduling/` and is split into the memory math (the FSRS-6 adapter, or the frozen `fsrs5.dart`) and the step machine (`scheduler.dart`).
 
 ### 3.1 Two-Dimensional Memory Model
 
@@ -230,10 +233,11 @@ LLMs frequently return unescaped LaTeX backslashes inside JSON string literals. 
 > [!NOTE]
 > Below are technical areas and architectural tradeoffs that have specific nuances or warrant deeper investigation.
 
-### 8.1 FSRS-5 vs. FSRS-6 & Official Dart Package Discrepancy
-*   **Status in Code:** Flashcards2 uses a bespoke, pure-Dart implementation of FSRS-5 with 19 parameters ($w_0 \dots w_{18}$).
-*   **Investigation Finding:** The official pub package `fsrs` (v2.0.1) upgraded to FSRS-6. FSRS-6 introduces trainable decay ($w_{20}$) and different default weight vectors. Its test vectors diverge from the canonical FSRS-5 interval sequence (`[0, 4, 14, 44, 125, 328...]` vs FSRS-6's `[0, 4, 14, 45, 135, 372...]`).
-*   **Short-Term Saturation Factor ($S^{-0.01}$):** FSRS-5 specification documents omit this term in prose, yet upstream reference implementations (`fsrs-rs`, `ts-fsrs`) require an $S^{-0.01}$ exponent on short-term stability to reproduce test vectors. This was empirically verified and locked in `fsrs5.dart`.
+### 8.1 FSRS-6 Migration — RESOLVED (2026-10-17)
+*   **Status in Code:** Flashcards2 now schedules with **FSRS-6** via `package:fsrs` v2.0.1 (pinned exactly), consumed through the `Fsrs6SchedulerAdapter` anti-corruption layer and the `MemoryEngine` contract. The bespoke pure-Dart FSRS-5 port ($w_0 \dots w_{18}$) is frozen in-tree as the verified rollback engine and its own reference-vector test still gates it.
+*   **Vector divergence — explained:** the interval-history divergence (`[0, 4, 14, 44, 125, 328...]` vs `[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40]`) is the FSRS-6 curve itself: the trainable decay ($w_{20}$), same-day saturation ($w_{19}$), and deliberately more conservative post-lapse recovery. Verified empirically by the Phase 1 spike and pinned weights-to-source against py-fsrs v6.1.0 (commit `e64e3b4f710ada3486bca0e49b54ba33a3137654`).
+*   **Accepted package divergence:** dart-fsrs 2.0.1 clamps same-day stability to ≥ 1 for `good`/`easy` only, so a same-day `hard` may decrease stability — unlike py-fsrs/fsrs-rs and unlike the frozen FSRS-5 port. Accepted as-is (plan Phase 2 decision 4).
+*   **Short-Term Saturation Factor ($S^{-0.01}$):** applies only to the **frozen FSRS-5** engine: its specification documents omit this term in prose, yet reference implementations require it to reproduce test vectors; empirically verified and locked in `fsrs5.dart`. Under FSRS-6 the trainable $w_{19}$ slot governs same-day behavior instead.
 
 ### 8.2 85% Target Accuracy Band (`AccuracyHeuristic`)
 *   *Need for investigation:* The theoretical paper (`the_science_of_learning.md`) mentions that an ~85% success rate is optimal for learning, but provides no mathematical transfer function to FSRS interval adjustments.

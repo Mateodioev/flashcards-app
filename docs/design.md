@@ -1,8 +1,11 @@
 # Design: Local-First Flashcards (Android, Dart/Flutter)
 
 A single-user, offline-first flashcard app for Android. No accounts, no server, no
-telemetry. The scheduler is a port of FSRS-5, not a naive interval ladder, and the
-review interaction is built to defeat the fluency illusion rather than flatter it.
+telemetry. The scheduler is FSRS-6 — the official `fsrs` package consumed behind an
+anti-corruption layer — not a naive interval ladder, and the review interaction is
+built to defeat the fluency illusion rather than flatter it. A frozen FSRS-5 port
+remains in-tree as the verified rollback engine (see *Scheduler* below and
+`fsrs6_migration_plan.md`).
 
 Source of truth for the learning science: [`../the_science_of_learning.md`](../the_science_of_learning.md).
 
@@ -14,7 +17,7 @@ Source of truth for the learning science: [`../the_science_of_learning.md`](../t
 | Persistence | SQLite via Drift | Local-first, typed queries, real migrations |
 | State | Riverpod | Testable, no `BuildContext` coupling |
 | Backend | None | Local-first requires no server; no login means no accounts |
-| Scheduler | **Native FSRS-5 port** | Highest-leverage component; must be unit-tested |
+| Scheduler | **FSRS-6 via `package:fsrs` 2.0.1 behind an ACL**; frozen native FSRS-5 port kept as rollback | Highest-leverage component; must be unit-tested |
 | Platforms | **Android only** | No iOS/web/desktop build surface |
 | AI grading | **Disabled** | Self-grade + behavioral signals only; no model in the grading loop |
 | LaTeX | `flutter_math_fork` | Pure Dart, offline, no WebView |
@@ -63,7 +66,41 @@ optimization may read. Review history is never mutated to correct statistics.
 Image bytes live on the filesystem; SQLite stores paths. This keeps the database
 small and makes backup/export tractable.
 
-## Scheduler: FSRS-5 (verified)
+## Scheduler: FSRS-6 (live)
+
+**Verification status: COMPLETE (migration executed 2026-10-17).** The live scheduling
+engine is `package:fsrs` **2.0.1** (`open-spaced-repetition/dart-fsrs`), pinned exactly
+(no caret), consumed exclusively through the `Fsrs6SchedulerAdapter` anti-corruption
+layer in `lib/domain/scheduling/fsrs6_adapter.dart`. Third-party types never leave
+`lib/domain/scheduling/`. Full plan, decisions, and evidence: `fsrs6_migration_plan.md`.
+
+Key wiring decisions (all locked in the migration plan):
+
+- **`MemoryEngine` contract** (`memory_engine.dart`): the domain `Scheduler` delegates
+  only (S, D) advancement and interval mapping; both the adapter and the frozen FSRS-5
+  port implement it, so rollback remains a config swap — and that swap is proven by an
+  integration gate (`ROLLBACK GATE` in `interval_history_test.dart`), not just asserted.
+- **Domain owns the calendar:** learning/relearning steps, persisted `step` resume, `due`
+  arithmetic, and the 4 AM `dayCutoffHour` day boundary stay in `scheduler.dart`; the
+  wrapped package scheduler is built with empty step lists so its own step machine is
+  inert (Option A, plan Phase 2).
+- **Fuzz policy:** ON in production via `productionSchedulerConfig()`
+  (`study_session_launcher.dart`), OFF everywhere in tests.
+- **Accepted package divergence:** dart-fsrs 2.0.1 clamps same-day stability to ≥ 1 for
+  good/easy only, so a same-day `hard` may decrease stability (differs from
+  py-fsrs/fsrs-rs). Accepted as-is; compensation, if ever wanted, belongs behind the ACL.
+- **Weights provenance:** original 21 FSRS-6 defaults, verified element-for-element
+  against `py-fsrs` **v6.1.0** (commit `e64e3b4f710ada3486bca0e49b54ba33a3137654`);
+  interval vector re-derived by the executable Phase 1 spike. **Upstream drift:** py-fsrs
+  v6.2.0+ / fsrs-rs moved to re-optimized weights (decay 0.1542) — a weight upgrade is a
+  deliberate reviewed bump that re-derives `test/support/canonical_vectors.dart`.
+- **No SQL migration:** FSRS-5 and FSRS-6 share the semantics of stored (S, D);
+  `schedule_states` rows ingest unchanged, verified by `fsrs6_compat_test.dart`.
+
+The remaining subsections document the **frozen FSRS-5 port**, kept in-tree as the
+verified rollback engine (it stays until at least one release ships on FSRS-6).
+
+## Scheduler: FSRS-5 (frozen rollback, verified)
 
 **Verification status: COMPLETE.** The constants and equations below were taken from the
 canonical reference implementations, not from `the_science_of_learning.md` (which supplies
@@ -199,22 +236,18 @@ not prose, and not inspection — are the acceptance gate for T3.2.
 The `max(sinc, 1.0)` mask for `G >= 2` still applies: a same-day review must never *reduce*
 stability for Hard, Good or Easy.
 
-### Reference implementation: port or depend?
+### Reference implementation: port or depend? — RESOLVED (depend)
 
-An official Dart package exists: `fsrs` **2.0.1** (`open-spaced-repetition/dart-fsrs`,
-65 stars, not archived, 5 open issues, last pushed **2025-06-20**).
+An official Dart package exists: `fsrs` **2.0.1** (`open-spaced-repetition/dart-fsrs`).
 
-It is **not** a drop-in for this design:
-
-- Its changelog says `2.0.0 → FSRS-6`. It bundles FSRS-6 default weights and does not
-  contain the FSRS-5 vector `0.40255`.
-- Its own interval-history test expects `[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40]`,
-  which **diverges** from the canonical FSRS-5 vector `[0, 4, 14, 44, 125, 328, 0, 0, 6, 14, 31, 65, 130]`
-  from the 4th element onward. Whether that is the FSRS-6 curve or a divergence in its
-  post-lapse handling was **not** established.
-
-So: depending on it would mean adopting FSRS-6, not FSRS-5, and accepting unverified
-vector behaviour. This is an open decision — see `plan.md`.
+Decision history: this section previously flagged that depending on it meant adopting
+FSRS-6 with unverified vector behaviour. That risk was retired by executing
+`fsrs6_migration_plan.md` (2026-10-17): the Phase 1 spike empirically reproduced the
+FSRS-6 interval-history vector `[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40]` from
+the package's own defaults, the weights were verified against py-fsrs v6.1.0, and the
+package was adopted **behind an ACL** with fuzz and same-day decisions pinned (see
+*Scheduler: FSRS-6 (live)* above). The divergence from the FSRS-5 vector is the FSRS-6
+curve itself — deliberate, more conservative post-lapse recovery — not a package defect.
 
 ### Target accuracy band
 
