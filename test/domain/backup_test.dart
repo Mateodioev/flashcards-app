@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flashcards2/data/database.dart';
 import 'package:flashcards2/data/repositories/drift_card_repository.dart';
 import 'package:flashcards2/data/repositories/drift_course_repository.dart';
+import 'package:flashcards2/data/repositories/drift_reminder_repository.dart';
 import 'package:flashcards2/data/repositories/drift_review_log_repository.dart';
 import 'package:flashcards2/data/repositories/drift_settings_repository.dart';
 import 'package:flashcards2/domain/backup/backup.dart';
@@ -35,12 +36,14 @@ void main() {
       cards: cards,
       logs: logs,
       settings: settings,
+      reminders: DriftReminderRepository(db),
     );
     importer = BackupImporter(
       courses: courses,
       cards: cards,
       logs: logs,
       settings: settings,
+      reminders: DriftReminderRepository(db),
     );
   });
   tearDown(() => db.close());
@@ -118,6 +121,7 @@ void main() {
         cards: DriftCardRepository(fresh),
         logs: DriftReviewLogRepository(fresh),
         settings: DriftSettingsRepository(fresh),
+        reminders: DriftReminderRepository(fresh),
       ).import(Backup.decode(encoded));
 
       expect(imported.courses, 1);
@@ -152,6 +156,7 @@ void main() {
         cards: freshCards,
         logs: DriftReviewLogRepository(fresh),
         settings: DriftSettingsRepository(fresh),
+        reminders: DriftReminderRepository(fresh),
       ).import(Backup.decode(encoded));
 
       final course = (await DriftCourseRepository(fresh).findAll()).single;

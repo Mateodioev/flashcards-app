@@ -4,6 +4,8 @@ import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart' as domain_theme;
 import 'package:flashcards2/domain/enums.dart';
+import 'package:flashcards2/domain/reminders/reminder.dart';
+import 'package:flashcards2/domain/reminders/reminder_repository.dart';
 import 'package:flashcards2/domain/repositories/card_repository.dart';
 import 'package:flashcards2/domain/repositories/course_repository.dart';
 import 'package:flashcards2/domain/repositories/review_log_repository.dart';
@@ -20,16 +22,19 @@ class BackupExporter {
     required this.cards,
     required this.logs,
     required this.settings,
+    required this.reminders,
   });
 
   final CourseRepository courses;
   final CardRepository cards;
   final ReviewLogRepository logs;
   final SettingsRepository settings;
+  final ReminderRepository reminders;
 
   Future<Backup> export({DateTime? now}) async {
     final courseList = await courses.findAll(includeArchived: true);
     final settingsRow = await settings.read();
+    final reminderList = await reminders.findAll();
 
     final exported = <BackupCourse>[];
     for (final course in courseList) {
@@ -82,6 +87,19 @@ class BackupExporter {
         // device-local: restoring them onto another machine would point it at
         // an endpoint and model the learner did not choose there.
       ),
+      // Every subscription is exported, target-scoped ones included. The
+      // importer — not the exporter — decides what survives a restore (L9).
+      reminders: <BackupReminder>[
+        for (final reminder in reminderList)
+          BackupReminder(
+            scope: reminder.scope.name,
+            targetId: reminder.targetId,
+            hour: reminder.hour,
+            minute: reminder.minute,
+            daysOfWeek: reminder.daysOfWeek,
+            enabled: reminder.enabled,
+          ),
+      ],
     );
   }
 
@@ -149,12 +167,14 @@ class BackupImporter {
     required this.cards,
     required this.logs,
     required this.settings,
+    required this.reminders,
   });
 
   final CourseRepository courses;
   final CardRepository cards;
   final ReviewLogRepository logs;
   final SettingsRepository settings;
+  final ReminderRepository reminders;
 
   /// Imports [backup] and returns what was written.
   Future<ImportSummary> import(Backup backup, {DateTime? now}) async {
@@ -163,6 +183,8 @@ class BackupImporter {
     var themeCount = 0;
     var cardCount = 0;
     var logCount = 0;
+    var reminderCount = 0;
+    var reminderSkippedCount = 0;
 
     for (final backupCourse in backup.courses) {
       final course = await courses.create(_course(backupCourse, at));
@@ -248,11 +270,34 @@ class BackupImporter {
       ),
     );
 
+    // Only the global subscription is restored (task log L9): ids are not
+    // preserved on restore, so course/theme rows would point at ghosts. The
+    // write goes through [ReminderRepository.upsert] — never a raw insert —
+    // because the one-global-subscription guard lives only there (log L7).
+    for (final reminder in backup.reminders) {
+      if (reminder.scope != ReminderScope.global.name) {
+        reminderSkippedCount++;
+        continue;
+      }
+      await reminders.upsert(
+        ReminderSubscription(
+          scope: ReminderScope.global,
+          hour: reminder.hour,
+          minute: reminder.minute,
+          daysOfWeek: reminder.daysOfWeek,
+          enabled: reminder.enabled,
+        ),
+      );
+      reminderCount++;
+    }
+
     return ImportSummary(
       courses: courseCount,
       themes: themeCount,
       cards: cardCount,
       logs: logCount,
+      reminders: reminderCount,
+      remindersSkipped: reminderSkippedCount,
     );
   }
 
@@ -316,12 +361,20 @@ class ImportSummary {
     required this.themes,
     required this.cards,
     required this.logs,
+    this.reminders = 0,
+    this.remindersSkipped = 0,
   });
 
   final int courses;
   final int themes;
   final int cards;
   final int logs;
+
+  /// Global reminder subscriptions restored.
+  final int reminders;
+
+  /// Target-scoped reminder rows in the file that were not restored (L9).
+  final int remindersSkipped;
 
   @override
   String toString() =>

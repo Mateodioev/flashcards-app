@@ -77,6 +77,7 @@ BackupExporter backupExporter(Ref ref) => BackupExporter(
   cards: ref.watch(cardRepositoryProvider),
   logs: ref.watch(reviewLogRepositoryProvider),
   settings: ref.watch(settingsRepositoryProvider),
+  reminders: ref.watch(reminderRepositoryProvider),
 );
 
 /// The importer, wired to the real repositories.
@@ -86,4 +87,5 @@ BackupImporter backupImporter(Ref ref) => BackupImporter(
   cards: ref.watch(cardRepositoryProvider),
   logs: ref.watch(reviewLogRepositoryProvider),
   settings: ref.watch(settingsRepositoryProvider),
+  reminders: ref.watch(reminderRepositoryProvider),
 );

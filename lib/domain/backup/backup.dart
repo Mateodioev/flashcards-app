@@ -307,12 +307,57 @@ class BackupSettings {
   };
 }
 
+/// One reminder subscription, safe to travel.
+///
+/// Scope is stored as the `ReminderScope` name string (`'global'`,
+/// `'course'`, `'theme'`), the same convention [BackupCard] uses for its
+/// source. The id is deliberately absent: restores never preserve ids, so
+/// exporting one would invite code that wrongly trusts it.
+class BackupReminder {
+  const new({
+    required this.scope,
+    required this.hour,
+    required this.minute,
+    this.targetId,
+    this.daysOfWeek,
+    this.enabled = true,
+  });
+
+  factory fromJson(Map<String, Object?> json) => BackupReminder(
+    scope: json['scope']! as String,
+    targetId: json['targetId'] as int?,
+    hour: json['hour']! as int,
+    minute: json['minute']! as int,
+    daysOfWeek: (json['daysOfWeek'] as List?)
+        ?.map((day) => day! as int)
+        .toList(),
+    enabled: json['enabled'] as bool? ?? true,
+  );
+
+  final String scope;
+  final int? targetId;
+  final int hour;
+  final int minute;
+  final List<int>? daysOfWeek;
+  final bool enabled;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'scope': scope,
+    'targetId': targetId,
+    'hour': hour,
+    'minute': minute,
+    'daysOfWeek': daysOfWeek,
+    'enabled': enabled,
+  };
+}
+
 /// A complete backup.
 class Backup {
   const new({
     required this.exportedAt,
     required this.courses,
     required this.settings,
+    this.reminders = const <BackupReminder>[],
   });
 
   /// Parses and validates a backup file.
@@ -371,6 +416,16 @@ class Backup {
         settings: BackupSettings.fromJson(
           (json['settings']! as Map).cast<String, Object?>(),
         ),
+        // Optional since format version 1: backups written before reminders
+        // existed decode as an empty list, so the version does not need to
+        // move for this additive key.
+        reminders: <BackupReminder>[
+          for (final reminder
+              in (json['reminders'] as List? ?? <Object?>[]))
+            BackupReminder.fromJson(
+              (reminder! as Map).cast<String, Object?>(),
+            ),
+        ],
       );
     } on BackupFormatException {
       rethrow;
@@ -394,6 +449,10 @@ class Backup {
   final List<BackupCourse> courses;
   final BackupSettings settings;
 
+  /// Every exported reminder subscription, target-scoped ones included (they
+  /// are skipped on restore by the importer in backup_io.dart).
+  final List<BackupReminder> reminders;
+
   /// How many cards the backup holds, for a confirmation message.
   int get cardCount => courses.fold(
     0,
@@ -407,6 +466,7 @@ class Backup {
     'exportedAt': exportedAt.toIso8601String(),
     'settings': settings.toJson(),
     'courses': <Object?>[for (final course in courses) course.toJson()],
+    'reminders': <Object?>[for (final reminder in reminders) reminder.toJson()],
   };
 
   String encode() => const JsonEncoder.withIndent('  ').convert(toJson());

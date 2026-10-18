@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flashcards2/data/database.dart';
 import 'package:flashcards2/data/repositories/drift_card_repository.dart';
 import 'package:flashcards2/data/repositories/drift_course_repository.dart';
+import 'package:flashcards2/data/repositories/drift_reminder_repository.dart';
 import 'package:flashcards2/data/repositories/drift_review_log_repository.dart';
 import 'package:flashcards2/data/repositories/drift_settings_repository.dart';
 import 'package:flashcards2/domain/backup/backup.dart';
@@ -222,6 +223,7 @@ void main() {
         cards: DriftCardRepository(db),
         logs: DriftReviewLogRepository(db),
         settings: DriftSettingsRepository(db),
+        reminders: DriftReminderRepository(db),
       );
       expect(importer, isNotNull);
     });
