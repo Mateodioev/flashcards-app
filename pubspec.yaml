@@ -36,6 +36,10 @@ dependencies:
   flutter_math_fork: ^0.7.4
   flutter_riverpod: ^3.4.3
   flutter_secure_storage: ^11.2.0
+  # Pinned exactly (no caret): the scheduling domain is too central to ride
+  # caret resolution; upgrades are explicit, reviewed operations. See
+  # docs/fsrs6_migration_plan.md, Phase 1.
+  fsrs: 2.0.1
   http: ^1.6.0
   image_picker: ^1.2.4
   meta: ^1.19.0

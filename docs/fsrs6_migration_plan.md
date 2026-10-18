@@ -84,6 +84,15 @@ flowchart TD
    If the package API is session-oriented and cannot be driven at this granularity, STOP: re-evaluate whether to wrap a lower-level entry point, vendor the formula code, or abandon the migration. Do not proceed to Phase 2 on an unproven API assumption.
 5. **Determinism check:** verify whether `package:fsrs` applies interval fuzzing/randomization by default and that it can be disabled. The canonical reference-vector tests (Phase 4) are deterministic; a fuzzed scheduler makes them flaky from day one. Record the exact toggle in this document once found.
 
+**Phase 1 outcome (spike executed 2026-10-17, `fsrs` 2.0.1):**
+
+- **Pinned and resolved:** `fsrs: 2.0.1` (exact, no caret), sha256 `b50dbee450a424dbac4fb0f49cae25ff2e4e6d01844caa1ec0c26de5baba8071`. Sole runtime dependency is `meta`; zero Flutter/`dart:ui`/native dependencies — `lib/domain/` isolation preserved.
+- **API granularity: GREEN.** The public surface is `reviewCard(card, rating, {reviewDateTime, reviewDuration})` (UTC timestamps mandatory, throws `ArgumentError` otherwise) and `getCardRetrievability`. The caller fully controls the clock: the adapter fabricates `reviewDateTime = lastReview + elapsedDays` to inject explicit day counts. Intervals are extracted as `result.card.due - reviewDateTime`; the package's State/step/due mutations are discarded at the ACL boundary — only `stability` and `difficulty` cross it.
+- **Canonical vector: MATCH.** `[G×6, A×2, G×5]` driven through `reviewCard` at due-boundary timestamps yields exactly `[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40]`. Phase 4 re-derives it from `fsrs-rs`/`py-fsrs` provenance anyway; this confirms the package reproduces the expected FSRS-6 behavior.
+- **Fuzz toggle found:** `Scheduler(enableFuzzing: false)` — fuzzing is **ON by default** (5/5 runs of the same sequence produced distinct long-interval outputs), so every test harness must pass this flag. `Scheduler.customRandom(random, ...)` additionally exists for seeded fuzz. **Open decision for Phase 2:** production policy — keep fuzz ON in production (Anki-compatible load spreading) and OFF in tests, or off everywhere. Record it in Phase 2 before implementing the adapter.
+- **Hazard found — same-day `hard` diverges from spec:** on a same-day review the package clamps short-term stability increase to ≥ 1 only for `good`/`easy`; `hard` can *decrease* stability (observed 3.2602 → 1.6644). `py-fsrs`/`fsrs-rs` clamp for every rating except `again`. Phase 2 must decide whether the adapter accepts this divergence or compensates for `hard` before delegating. This directly affects the Option A/B same-day decision below.
+- **Minor invariants observed:** same-day detection uses truncated `.inDays` on timestamps (so the adapter's fabricated timestamps must keep reviews exactly on day boundaries), and `_nextInterval` is private (interval extraction via `due` is the only public path, which is why fuzz must be off when extracting).
+
 ### Phase 2: Anti-Corruption Layer (`Fsrs6SchedulerAdapter`)
 1. Create `lib/domain/scheduling/fsrs6_adapter.dart`:
    * Wrap `fsrs.Scheduler` configured with default 21 parameters.
