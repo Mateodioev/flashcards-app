@@ -33,12 +33,14 @@ dependencies:
   drift_flutter: ^0.3.1
   flutter:
     sdk: flutter
+  flutter_local_notifications: ^22.3.2
   flutter_math_fork: ^0.7.4
   flutter_riverpod: ^3.4.3
   flutter_secure_storage: ^11.2.0
   # Pinned exactly (no caret): the scheduling domain is too central to ride
   # caret resolution; upgrades are explicit, reviewed operations. See
   # docs/fsrs6_migration_plan.md, Phase 1.
+  flutter_timezone: ^5.1.1
   fsrs: 2.0.1
   http: ^1.6.0
   image_picker: ^1.2.4
@@ -46,6 +48,7 @@ dependencies:
   package_info_plus: ^10.2.2
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.7
+  timezone: ^0.11.2
 
 dev_dependencies:
   build_runner: ^2.16.2

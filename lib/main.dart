@@ -1,12 +1,17 @@
 import 'package:flashcards2/core/theme.dart';
 import 'package:flashcards2/data/database.dart';
+import 'package:flashcards2/data/notifications/reminder_time_zone.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/course_list_screen.dart';
 import 'package:flashcards2/presentation/screens/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-void main() {
+Future<void> main() async {
+  // TZDateTime scheduling needs the zone database ready before the first
+  // reminder is scheduled; doing it before runApp keeps the gateway simple.
+  WidgetsFlutterBinding.ensureInitialized();
+  await initReminderTimeZone();
   runApp(
     ProviderScope(
       overrides: [

@@ -4,6 +4,17 @@
          declaration, or release builds have no network and the AI import
          silently fails with a socket error on device. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Study reminders (docs/reminder_notifications_plan.md, D2): Android 13+
+         treats notifications as a runtime permission; the manifest entry is
+         the prerequisite for requestNotificationsPermission(). Deliberately no
+         exact-alarm permission: reminders are scheduled inexact
+         (inexactAllowWhileIdle) so revoking a special permission can never
+         silently stop recurring reminders. test/android_manifest_test.dart
+         pins that decision. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Lets flutter_local_notifications restore scheduled reminders after a
+         device reboot; the app-start reconcile is only a backstop. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
         android:label="Flashcards"
         android:name="${applicationName}"
