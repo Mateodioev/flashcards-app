@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flashcards2/data/converters/review_state_converter.dart';
 import 'package:flashcards2/domain/enums.dart';
+import 'package:flashcards2/domain/reminders/reminder.dart';
 
 /// Storage defaults for columns that onboarding has not yet written.
 ///
@@ -175,6 +176,71 @@ class ReviewLogs extends Table {
 
   BoolColumn get barrierCompleted =>
       boolean().withDefault(const Constant(false))();
+}
+
+/// A persisted study-reminder subscription (docs/reminder_notifications_plan.md
+/// §2): one row per (scope, target) the learner wants to be nudged about.
+///
+/// The target is polymorphic — course or theme — and one `targetId` column
+/// cannot carry a foreign key to two tables, so it is split into [courseId]
+/// and [themeId]: exactly the scope's column is set, the other is null, and
+/// [scope] says which (enforced by the CHECK constraint below). Both null
+/// means a global reminder. Both FKs cascade so a deleted course or theme
+/// takes its reminder with it — nothing may schedule ghosts (plan §7).
+///
+/// Added in schema v4.
+@DataClassName('ReminderSubscriptionRow')
+class ReminderSubscriptions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Text-enum storage per the storage contract at the top of this file, and
+  /// the CHECK constraint below matches on the stored enum name.
+  TextColumn get scope => textEnum<ReminderScope>()();
+
+  /// One subscription per course at most. SQLite's UNIQUE treats NULLs as
+  /// distinct, so the global and theme rows (null here) never collide.
+  IntColumn get courseId => integer().nullable().unique().references(
+    Courses,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+
+  /// One subscription per theme at most; same NULL semantics as [courseId].
+  IntColumn get themeId => integer().nullable().unique().references(
+    Themes,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+
+  /// Local time of day, 0-23 and 0-59.
+  IntColumn get hour => integer()();
+
+  IntColumn get minute => integer()();
+
+  /// Selected weekdays as comma-joined sorted dayIdx (0 = Mon), e.g. `"0,2,4"`.
+  ///
+  /// Null means "every day" — plan D3 ships daily reminders for v1, so until
+  /// the weekday picker exists every row is null here. A text column instead
+  /// of seven booleans keeps the daily case at zero storage and the encoding
+  /// readable in a database browser.
+  TextColumn get daysOfWeek => text().nullable()();
+
+  /// A denied OS permission keeps the row but stores it disabled (plan T5).
+  BoolColumn get enabled => boolean().withDefault(const Constant(true))();
+
+  @override
+  List<String> get customConstraints => [
+    // Pairs the scope with exactly its target column. Drift's generator only
+    // accepts the literal inline here — neither a referenced const nor `+`
+    // concatenation reach the generated CREATE TABLE — so the two string
+    // lints conflict on this element and the list one is silenced pointedly.
+    // ignore: no_adjacent_strings_in_list
+    "CHECK ((scope = 'global' AND course_id IS NULL AND theme_id IS NULL)"
+        " OR (scope = 'course' AND course_id IS NOT NULL"
+        ' AND theme_id IS NULL)'
+        " OR (scope = 'theme' AND theme_id IS NOT NULL"
+        ' AND course_id IS NULL))',
+  ];
 }
 
 /// Global application settings.

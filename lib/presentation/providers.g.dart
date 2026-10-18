@@ -246,6 +246,54 @@ final class SettingsRepositoryProvider
 String _$settingsRepositoryHash() =>
     r'089b44970711e54ecd9e562ac7227c1206e39cf8';
 
+@ProviderFor(reminderRepository)
+final reminderRepositoryProvider = ReminderRepositoryProvider._();
+
+final class ReminderRepositoryProvider
+    extends
+        $FunctionalProvider<
+          ReminderRepository,
+          ReminderRepository,
+          ReminderRepository
+        >
+    with $Provider<ReminderRepository> {
+  ReminderRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reminderRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reminderRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<ReminderRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ReminderRepository create(Ref ref) {
+    return reminderRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ReminderRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ReminderRepository>(value),
+    );
+  }
+}
+
+String _$reminderRepositoryHash() =>
+    r'f3b1ba9e0ec7a4019437dfb13de176323468baaf';
+
 /// Non-archived courses.
 ///
 /// Invalidate after any create, edit or delete so the list rebuilds from the
@@ -631,7 +679,7 @@ final class CardSearchResultsProvider
   }
 }
 
-String _$cardSearchResultsHash() => r'ccf8f9a602d35ea512d01222d01c58bc365090b3';
+String _$cardSearchResultsHash() => r'9cfa51420d009b2fd3b9ef29b870b9fc640f70fe';
 
 /// Cards matching a [CardSearchQuery], ordered by course, theme and card id.
 ///

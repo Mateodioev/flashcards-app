@@ -2,6 +2,7 @@ import 'package:flashcards2/data/ai/openai_compatible_client.dart';
 import 'package:flashcards2/data/database.dart';
 import 'package:flashcards2/data/repositories/drift_card_repository.dart';
 import 'package:flashcards2/data/repositories/drift_course_repository.dart';
+import 'package:flashcards2/data/repositories/drift_reminder_repository.dart';
 import 'package:flashcards2/data/repositories/drift_review_log_repository.dart';
 import 'package:flashcards2/data/repositories/drift_settings_repository.dart';
 import 'package:flashcards2/domain/ai/ai_settings_service.dart';
@@ -12,6 +13,7 @@ import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
 import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/domain/onboarding/onboarding_service.dart';
+import 'package:flashcards2/domain/reminders/reminder_repository.dart';
 import 'package:flashcards2/domain/repositories/card_repository.dart';
 import 'package:flashcards2/domain/repositories/course_repository.dart';
 import 'package:flashcards2/domain/repositories/review_log_repository.dart';
@@ -51,6 +53,11 @@ ReviewLogRepository reviewLogRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 SettingsRepository settingsRepository(Ref ref) {
   return DriftSettingsRepository(ref.watch(databaseProvider));
+}
+
+@Riverpod(keepAlive: true)
+ReminderRepository reminderRepository(Ref ref) {
+  return DriftReminderRepository(ref.watch(databaseProvider));
 }
 
 /// Non-archived courses.

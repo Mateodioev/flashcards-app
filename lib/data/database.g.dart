@@ -3391,6 +3391,552 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingsRow> {
   }
 }
 
+class $ReminderSubscriptionsTable extends ReminderSubscriptions
+    with TableInfo<$ReminderSubscriptionsTable, ReminderSubscriptionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReminderSubscriptionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ReminderScope, String> scope =
+      GeneratedColumn<String>(
+        'scope',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ReminderScope>(
+        $ReminderSubscriptionsTable.$converterscope,
+      );
+  static const VerificationMeta _courseIdMeta = const VerificationMeta(
+    'courseId',
+  );
+  @override
+  late final GeneratedColumn<int> courseId = GeneratedColumn<int>(
+    'course_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'UNIQUE REFERENCES courses (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _themeIdMeta = const VerificationMeta(
+    'themeId',
+  );
+  @override
+  late final GeneratedColumn<int> themeId = GeneratedColumn<int>(
+    'theme_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'UNIQUE REFERENCES themes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _hourMeta = const VerificationMeta('hour');
+  @override
+  late final GeneratedColumn<int> hour = GeneratedColumn<int>(
+    'hour',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _minuteMeta = const VerificationMeta('minute');
+  @override
+  late final GeneratedColumn<int> minute = GeneratedColumn<int>(
+    'minute',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _daysOfWeekMeta = const VerificationMeta(
+    'daysOfWeek',
+  );
+  @override
+  late final GeneratedColumn<String> daysOfWeek = GeneratedColumn<String>(
+    'days_of_week',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    scope,
+    courseId,
+    themeId,
+    hour,
+    minute,
+    daysOfWeek,
+    enabled,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reminder_subscriptions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReminderSubscriptionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('course_id')) {
+      context.handle(
+        _courseIdMeta,
+        courseId.isAcceptableOrUnknown(data['course_id']!, _courseIdMeta),
+      );
+    }
+    if (data.containsKey('theme_id')) {
+      context.handle(
+        _themeIdMeta,
+        themeId.isAcceptableOrUnknown(data['theme_id']!, _themeIdMeta),
+      );
+    }
+    if (data.containsKey('hour')) {
+      context.handle(
+        _hourMeta,
+        hour.isAcceptableOrUnknown(data['hour']!, _hourMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hourMeta);
+    }
+    if (data.containsKey('minute')) {
+      context.handle(
+        _minuteMeta,
+        minute.isAcceptableOrUnknown(data['minute']!, _minuteMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_minuteMeta);
+    }
+    if (data.containsKey('days_of_week')) {
+      context.handle(
+        _daysOfWeekMeta,
+        daysOfWeek.isAcceptableOrUnknown(
+          data['days_of_week']!,
+          _daysOfWeekMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReminderSubscriptionRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReminderSubscriptionRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      scope: $ReminderSubscriptionsTable.$converterscope.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}scope'],
+        )!,
+      ),
+      courseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}course_id'],
+      ),
+      themeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}theme_id'],
+      ),
+      hour: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hour'],
+      )!,
+      minute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}minute'],
+      )!,
+      daysOfWeek: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}days_of_week'],
+      ),
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+    );
+  }
+
+  @override
+  $ReminderSubscriptionsTable createAlias(String alias) {
+    return $ReminderSubscriptionsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<ReminderScope, String, String> $converterscope =
+      const EnumNameConverter<ReminderScope>(ReminderScope.values);
+}
+
+class ReminderSubscriptionRow extends DataClass
+    implements Insertable<ReminderSubscriptionRow> {
+  final int id;
+
+  /// Text-enum storage per the storage contract at the top of this file, and
+  /// the CHECK constraint below matches on the stored enum name.
+  final ReminderScope scope;
+
+  /// One subscription per course at most. SQLite's UNIQUE treats NULLs as
+  /// distinct, so the global and theme rows (null here) never collide.
+  final int? courseId;
+
+  /// One subscription per theme at most; same NULL semantics as [courseId].
+  final int? themeId;
+
+  /// Local time of day, 0-23 and 0-59.
+  final int hour;
+  final int minute;
+
+  /// Selected weekdays as comma-joined sorted dayIdx (0 = Mon), e.g. `"0,2,4"`.
+  ///
+  /// Null means "every day" — plan D3 ships daily reminders for v1, so until
+  /// the weekday picker exists every row is null here. A text column instead
+  /// of seven booleans keeps the daily case at zero storage and the encoding
+  /// readable in a database browser.
+  final String? daysOfWeek;
+
+  /// A denied OS permission keeps the row but stores it disabled (plan T5).
+  final bool enabled;
+  const ReminderSubscriptionRow({
+    required this.id,
+    required this.scope,
+    this.courseId,
+    this.themeId,
+    required this.hour,
+    required this.minute,
+    this.daysOfWeek,
+    required this.enabled,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    {
+      map['scope'] = Variable<String>(
+        $ReminderSubscriptionsTable.$converterscope.toSql(scope),
+      );
+    }
+    if (!nullToAbsent || courseId != null) {
+      map['course_id'] = Variable<int>(courseId);
+    }
+    if (!nullToAbsent || themeId != null) {
+      map['theme_id'] = Variable<int>(themeId);
+    }
+    map['hour'] = Variable<int>(hour);
+    map['minute'] = Variable<int>(minute);
+    if (!nullToAbsent || daysOfWeek != null) {
+      map['days_of_week'] = Variable<String>(daysOfWeek);
+    }
+    map['enabled'] = Variable<bool>(enabled);
+    return map;
+  }
+
+  ReminderSubscriptionsCompanion toCompanion(bool nullToAbsent) {
+    return ReminderSubscriptionsCompanion(
+      id: Value(id),
+      scope: Value(scope),
+      courseId: courseId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(courseId),
+      themeId: themeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(themeId),
+      hour: Value(hour),
+      minute: Value(minute),
+      daysOfWeek: daysOfWeek == null && nullToAbsent
+          ? const Value.absent()
+          : Value(daysOfWeek),
+      enabled: Value(enabled),
+    );
+  }
+
+  factory ReminderSubscriptionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReminderSubscriptionRow(
+      id: serializer.fromJson<int>(json['id']),
+      scope: $ReminderSubscriptionsTable.$converterscope.fromJson(
+        serializer.fromJson<String>(json['scope']),
+      ),
+      courseId: serializer.fromJson<int?>(json['courseId']),
+      themeId: serializer.fromJson<int?>(json['themeId']),
+      hour: serializer.fromJson<int>(json['hour']),
+      minute: serializer.fromJson<int>(json['minute']),
+      daysOfWeek: serializer.fromJson<String?>(json['daysOfWeek']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'scope': serializer.toJson<String>(
+        $ReminderSubscriptionsTable.$converterscope.toJson(scope),
+      ),
+      'courseId': serializer.toJson<int?>(courseId),
+      'themeId': serializer.toJson<int?>(themeId),
+      'hour': serializer.toJson<int>(hour),
+      'minute': serializer.toJson<int>(minute),
+      'daysOfWeek': serializer.toJson<String?>(daysOfWeek),
+      'enabled': serializer.toJson<bool>(enabled),
+    };
+  }
+
+  ReminderSubscriptionRow copyWith({
+    int? id,
+    ReminderScope? scope,
+    Value<int?> courseId = const Value.absent(),
+    Value<int?> themeId = const Value.absent(),
+    int? hour,
+    int? minute,
+    Value<String?> daysOfWeek = const Value.absent(),
+    bool? enabled,
+  }) => ReminderSubscriptionRow(
+    id: id ?? this.id,
+    scope: scope ?? this.scope,
+    courseId: courseId.present ? courseId.value : this.courseId,
+    themeId: themeId.present ? themeId.value : this.themeId,
+    hour: hour ?? this.hour,
+    minute: minute ?? this.minute,
+    daysOfWeek: daysOfWeek.present ? daysOfWeek.value : this.daysOfWeek,
+    enabled: enabled ?? this.enabled,
+  );
+  ReminderSubscriptionRow copyWithCompanion(
+    ReminderSubscriptionsCompanion data,
+  ) {
+    return ReminderSubscriptionRow(
+      id: data.id.present ? data.id.value : this.id,
+      scope: data.scope.present ? data.scope.value : this.scope,
+      courseId: data.courseId.present ? data.courseId.value : this.courseId,
+      themeId: data.themeId.present ? data.themeId.value : this.themeId,
+      hour: data.hour.present ? data.hour.value : this.hour,
+      minute: data.minute.present ? data.minute.value : this.minute,
+      daysOfWeek: data.daysOfWeek.present
+          ? data.daysOfWeek.value
+          : this.daysOfWeek,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderSubscriptionRow(')
+          ..write('id: $id, ')
+          ..write('scope: $scope, ')
+          ..write('courseId: $courseId, ')
+          ..write('themeId: $themeId, ')
+          ..write('hour: $hour, ')
+          ..write('minute: $minute, ')
+          ..write('daysOfWeek: $daysOfWeek, ')
+          ..write('enabled: $enabled')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    scope,
+    courseId,
+    themeId,
+    hour,
+    minute,
+    daysOfWeek,
+    enabled,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReminderSubscriptionRow &&
+          other.id == this.id &&
+          other.scope == this.scope &&
+          other.courseId == this.courseId &&
+          other.themeId == this.themeId &&
+          other.hour == this.hour &&
+          other.minute == this.minute &&
+          other.daysOfWeek == this.daysOfWeek &&
+          other.enabled == this.enabled);
+}
+
+class ReminderSubscriptionsCompanion
+    extends UpdateCompanion<ReminderSubscriptionRow> {
+  final Value<int> id;
+  final Value<ReminderScope> scope;
+  final Value<int?> courseId;
+  final Value<int?> themeId;
+  final Value<int> hour;
+  final Value<int> minute;
+  final Value<String?> daysOfWeek;
+  final Value<bool> enabled;
+  const ReminderSubscriptionsCompanion({
+    this.id = const Value.absent(),
+    this.scope = const Value.absent(),
+    this.courseId = const Value.absent(),
+    this.themeId = const Value.absent(),
+    this.hour = const Value.absent(),
+    this.minute = const Value.absent(),
+    this.daysOfWeek = const Value.absent(),
+    this.enabled = const Value.absent(),
+  });
+  ReminderSubscriptionsCompanion.insert({
+    this.id = const Value.absent(),
+    required ReminderScope scope,
+    this.courseId = const Value.absent(),
+    this.themeId = const Value.absent(),
+    required int hour,
+    required int minute,
+    this.daysOfWeek = const Value.absent(),
+    this.enabled = const Value.absent(),
+  }) : scope = Value(scope),
+       hour = Value(hour),
+       minute = Value(minute);
+  static Insertable<ReminderSubscriptionRow> custom({
+    Expression<int>? id,
+    Expression<String>? scope,
+    Expression<int>? courseId,
+    Expression<int>? themeId,
+    Expression<int>? hour,
+    Expression<int>? minute,
+    Expression<String>? daysOfWeek,
+    Expression<bool>? enabled,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (scope != null) 'scope': scope,
+      if (courseId != null) 'course_id': courseId,
+      if (themeId != null) 'theme_id': themeId,
+      if (hour != null) 'hour': hour,
+      if (minute != null) 'minute': minute,
+      if (daysOfWeek != null) 'days_of_week': daysOfWeek,
+      if (enabled != null) 'enabled': enabled,
+    });
+  }
+
+  ReminderSubscriptionsCompanion copyWith({
+    Value<int>? id,
+    Value<ReminderScope>? scope,
+    Value<int?>? courseId,
+    Value<int?>? themeId,
+    Value<int>? hour,
+    Value<int>? minute,
+    Value<String?>? daysOfWeek,
+    Value<bool>? enabled,
+  }) {
+    return ReminderSubscriptionsCompanion(
+      id: id ?? this.id,
+      scope: scope ?? this.scope,
+      courseId: courseId ?? this.courseId,
+      themeId: themeId ?? this.themeId,
+      hour: hour ?? this.hour,
+      minute: minute ?? this.minute,
+      daysOfWeek: daysOfWeek ?? this.daysOfWeek,
+      enabled: enabled ?? this.enabled,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (scope.present) {
+      map['scope'] = Variable<String>(
+        $ReminderSubscriptionsTable.$converterscope.toSql(scope.value),
+      );
+    }
+    if (courseId.present) {
+      map['course_id'] = Variable<int>(courseId.value);
+    }
+    if (themeId.present) {
+      map['theme_id'] = Variable<int>(themeId.value);
+    }
+    if (hour.present) {
+      map['hour'] = Variable<int>(hour.value);
+    }
+    if (minute.present) {
+      map['minute'] = Variable<int>(minute.value);
+    }
+    if (daysOfWeek.present) {
+      map['days_of_week'] = Variable<String>(daysOfWeek.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderSubscriptionsCompanion(')
+          ..write('id: $id, ')
+          ..write('scope: $scope, ')
+          ..write('courseId: $courseId, ')
+          ..write('themeId: $themeId, ')
+          ..write('hour: $hour, ')
+          ..write('minute: $minute, ')
+          ..write('daysOfWeek: $daysOfWeek, ')
+          ..write('enabled: $enabled')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3401,10 +3947,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ScheduleStatesTable scheduleStates = $ScheduleStatesTable(this);
   late final $ReviewLogsTable reviewLogs = $ReviewLogsTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $ReminderSubscriptionsTable reminderSubscriptions =
+      $ReminderSubscriptionsTable(this);
   late final CourseDao courseDao = CourseDao(this as AppDatabase);
   late final CardDao cardDao = CardDao(this as AppDatabase);
   late final ReviewLogDao reviewLogDao = ReviewLogDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
+  late final ReminderDao reminderDao = ReminderDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3417,6 +3966,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     scheduleStates,
     reviewLogs,
     appSettings,
+    reminderSubscriptions,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3454,6 +4004,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('review_logs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'courses',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('reminder_subscriptions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'themes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('reminder_subscriptions', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -3493,6 +4057,31 @@ final class $$CoursesTableReferences
     ).filter((f) => f.courseId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_themesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $ReminderSubscriptionsTable,
+    List<ReminderSubscriptionRow>
+  >
+  _reminderSubscriptionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.reminderSubscriptions,
+        aliasName: 'courses__id__reminder_subscriptions__course_id',
+      );
+
+  $$ReminderSubscriptionsTableProcessedTableManager
+  get reminderSubscriptionsRefs {
+    final manager = $$ReminderSubscriptionsTableTableManager(
+      $_db,
+      $_db.reminderSubscriptions,
+    ).filter((f) => f.courseId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _reminderSubscriptionsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3561,6 +4150,32 @@ class $$CoursesTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> reminderSubscriptionsRefs(
+    Expression<bool> Function($$ReminderSubscriptionsTableFilterComposer f) f,
+  ) {
+    final $$ReminderSubscriptionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.reminderSubscriptions,
+          getReferencedColumn: (t) => t.courseId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ReminderSubscriptionsTableFilterComposer(
+                $db: $db,
+                $table: $db.reminderSubscriptions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 }
@@ -3661,6 +4276,32 @@ class $$CoursesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> reminderSubscriptionsRefs<T extends Object>(
+    Expression<T> Function($$ReminderSubscriptionsTableAnnotationComposer a) f,
+  ) {
+    final $$ReminderSubscriptionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.reminderSubscriptions,
+          getReferencedColumn: (t) => t.courseId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ReminderSubscriptionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.reminderSubscriptions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$CoursesTableTableManager
@@ -3676,7 +4317,10 @@ class $$CoursesTableTableManager
           $$CoursesTableUpdateCompanionBuilder,
           (CourseRow, $$CoursesTableReferences),
           CourseRow,
-          PrefetchHooks Function({bool themesRefs})
+          PrefetchHooks Function({
+            bool themesRefs,
+            bool reminderSubscriptionsRefs,
+          })
         > {
   $$CoursesTableTableManager(_$AppDatabase db, $CoursesTable table)
     : super(
@@ -3729,32 +4373,63 @@ class $$CoursesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({themesRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (themesRefs) db.themes],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (themesRefs)
-                    await $_getPrefetchedData<
-                      CourseRow,
-                      $CoursesTable,
-                      ThemeRow
-                    >(
-                      currentTable: table,
-                      referencedTable: $$CoursesTableReferences
-                          ._themesRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$CoursesTableReferences(db, table, p0).themesRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.courseId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({themesRefs = false, reminderSubscriptionsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (themesRefs) db.themes,
+                    if (reminderSubscriptionsRefs) db.reminderSubscriptions,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (themesRefs)
+                        await $_getPrefetchedData<
+                          CourseRow,
+                          $CoursesTable,
+                          ThemeRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CoursesTableReferences
+                              ._themesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CoursesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).themesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.courseId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (reminderSubscriptionsRefs)
+                        await $_getPrefetchedData<
+                          CourseRow,
+                          $CoursesTable,
+                          ReminderSubscriptionRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CoursesTableReferences
+                              ._reminderSubscriptionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CoursesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).reminderSubscriptionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.courseId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -3771,7 +4446,7 @@ typedef $$CoursesTableProcessedTableManager =
       $$CoursesTableUpdateCompanionBuilder,
       (CourseRow, $$CoursesTableReferences),
       CourseRow,
-      PrefetchHooks Function({bool themesRefs})
+      PrefetchHooks Function({bool themesRefs, bool reminderSubscriptionsRefs})
     >;
 typedef $$ThemesTableCreateCompanionBuilder = ThemesCompanion Function({
   Value<int> id,
@@ -3823,6 +4498,31 @@ final class $$ThemesTableReferences
     ).filter((f) => f.themeId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_cardsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $ReminderSubscriptionsTable,
+    List<ReminderSubscriptionRow>
+  >
+  _reminderSubscriptionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.reminderSubscriptions,
+        aliasName: 'themes__id__reminder_subscriptions__theme_id',
+      );
+
+  $$ReminderSubscriptionsTableProcessedTableManager
+  get reminderSubscriptionsRefs {
+    final manager = $$ReminderSubscriptionsTableTableManager(
+      $_db,
+      $_db.reminderSubscriptions,
+    ).filter((f) => f.themeId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _reminderSubscriptionsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3903,6 +4603,32 @@ class $$ThemesTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> reminderSubscriptionsRefs(
+    Expression<bool> Function($$ReminderSubscriptionsTableFilterComposer f) f,
+  ) {
+    final $$ReminderSubscriptionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.reminderSubscriptions,
+          getReferencedColumn: (t) => t.themeId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ReminderSubscriptionsTableFilterComposer(
+                $db: $db,
+                $table: $db.reminderSubscriptions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 }
@@ -4030,6 +4756,32 @@ class $$ThemesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> reminderSubscriptionsRefs<T extends Object>(
+    Expression<T> Function($$ReminderSubscriptionsTableAnnotationComposer a) f,
+  ) {
+    final $$ReminderSubscriptionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.reminderSubscriptions,
+          getReferencedColumn: (t) => t.themeId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ReminderSubscriptionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.reminderSubscriptions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ThemesTableTableManager
@@ -4045,7 +4797,11 @@ class $$ThemesTableTableManager
           $$ThemesTableUpdateCompanionBuilder,
           (ThemeRow, $$ThemesTableReferences),
           ThemeRow,
-          PrefetchHooks Function({bool courseId, bool cardsRefs})
+          PrefetchHooks Function({
+            bool courseId,
+            bool cardsRefs,
+            bool reminderSubscriptionsRefs,
+          })
         > {
   $$ThemesTableTableManager(_$AppDatabase db, $ThemesTable table)
     : super(
@@ -4094,59 +4850,92 @@ class $$ThemesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({courseId = false, cardsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (cardsRefs) db.cards],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (courseId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.courseId,
-                        referencedTable: $$ThemesTableReferences._courseIdTable(
-                          db,
-                        ),
-                        referencedColumn: $$ThemesTableReferences
-                            ._courseIdTable(db)
-                            .id,
-                      ) as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                courseId = false,
+                cardsRefs = false,
+                reminderSubscriptionsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (cardsRefs) db.cards,
+                    if (reminderSubscriptionsRefs) db.reminderSubscriptions,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (courseId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.courseId,
+                            referencedTable: $$ThemesTableReferences
+                                ._courseIdTable(db),
+                            referencedColumn: $$ThemesTableReferences
+                                ._courseIdTable(db)
+                                .id,
+                          ) as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (cardsRefs)
+                        await $_getPrefetchedData<
+                          ThemeRow,
+                          $ThemesTable,
+                          CardRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ThemesTableReferences
+                              ._cardsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ThemesTableReferences(db, table, p0).cardsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.themeId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (reminderSubscriptionsRefs)
+                        await $_getPrefetchedData<
+                          ThemeRow,
+                          $ThemesTable,
+                          ReminderSubscriptionRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ThemesTableReferences
+                              ._reminderSubscriptionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ThemesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).reminderSubscriptionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.themeId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (cardsRefs)
-                    await $_getPrefetchedData<ThemeRow, $ThemesTable, CardRow>(
-                      currentTable: table,
-                      referencedTable: $$ThemesTableReferences._cardsRefsTable(
-                        db,
-                      ),
-                      managerFromTypedResult: (p0) =>
-                          $$ThemesTableReferences(db, table, p0).cardsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.themeId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -4163,7 +4952,11 @@ typedef $$ThemesTableProcessedTableManager =
       $$ThemesTableUpdateCompanionBuilder,
       (ThemeRow, $$ThemesTableReferences),
       ThemeRow,
-      PrefetchHooks Function({bool courseId, bool cardsRefs})
+      PrefetchHooks Function({
+        bool courseId,
+        bool cardsRefs,
+        bool reminderSubscriptionsRefs,
+      })
     >;
 typedef $$CardsTableCreateCompanionBuilder = CardsCompanion Function({
   Value<int> id,
@@ -6210,6 +7003,482 @@ typedef $$AppSettingsTableProcessedTableManager =
       AppSettingsRow,
       PrefetchHooks Function()
     >;
+typedef $$ReminderSubscriptionsTableCreateCompanionBuilder =
+    ReminderSubscriptionsCompanion Function({
+      Value<int> id,
+      required ReminderScope scope,
+      Value<int?> courseId,
+      Value<int?> themeId,
+      required int hour,
+      required int minute,
+      Value<String?> daysOfWeek,
+      Value<bool> enabled,
+    });
+typedef $$ReminderSubscriptionsTableUpdateCompanionBuilder =
+    ReminderSubscriptionsCompanion Function({
+      Value<int> id,
+      Value<ReminderScope> scope,
+      Value<int?> courseId,
+      Value<int?> themeId,
+      Value<int> hour,
+      Value<int> minute,
+      Value<String?> daysOfWeek,
+      Value<bool> enabled,
+    });
+
+final class $$ReminderSubscriptionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ReminderSubscriptionsTable,
+          ReminderSubscriptionRow
+        > {
+  $$ReminderSubscriptionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CoursesTable _courseIdTable(_$AppDatabase db) =>
+      db.courses.createAlias('reminder_subscriptions__course_id__courses__id');
+
+  $$CoursesTableProcessedTableManager? get courseId {
+    final $_column = $_itemColumn<int>('course_id');
+    if ($_column == null) return null;
+    final manager = $$CoursesTableTableManager(
+      $_db,
+      $_db.courses,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_courseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ThemesTable _themeIdTable(_$AppDatabase db) =>
+      db.themes.createAlias('reminder_subscriptions__theme_id__themes__id');
+
+  $$ThemesTableProcessedTableManager? get themeId {
+    final $_column = $_itemColumn<int>('theme_id');
+    if ($_column == null) return null;
+    final manager = $$ThemesTableTableManager(
+      $_db,
+      $_db.themes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_themeIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ReminderSubscriptionsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReminderSubscriptionsTable> {
+  $$ReminderSubscriptionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ReminderScope, ReminderScope, String>
+  get scope => $composableBuilder(
+    column: $table.scope,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get minute => $composableBuilder(
+    column: $table.minute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get daysOfWeek => $composableBuilder(
+    column: $table.daysOfWeek,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CoursesTableFilterComposer get courseId {
+    final $$CoursesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.courseId,
+      referencedTable: $db.courses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CoursesTableFilterComposer(
+            $db: $db,
+            $table: $db.courses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ThemesTableFilterComposer get themeId {
+    final $$ThemesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.themeId,
+      referencedTable: $db.themes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThemesTableFilterComposer(
+            $db: $db,
+            $table: $db.themes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReminderSubscriptionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReminderSubscriptionsTable> {
+  $$ReminderSubscriptionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scope => $composableBuilder(
+    column: $table.scope,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get minute => $composableBuilder(
+    column: $table.minute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get daysOfWeek => $composableBuilder(
+    column: $table.daysOfWeek,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CoursesTableOrderingComposer get courseId {
+    final $$CoursesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.courseId,
+      referencedTable: $db.courses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CoursesTableOrderingComposer(
+            $db: $db,
+            $table: $db.courses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ThemesTableOrderingComposer get themeId {
+    final $$ThemesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.themeId,
+      referencedTable: $db.themes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThemesTableOrderingComposer(
+            $db: $db,
+            $table: $db.themes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReminderSubscriptionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReminderSubscriptionsTable> {
+  $$ReminderSubscriptionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ReminderScope, String> get scope =>
+      $composableBuilder(column: $table.scope, builder: (column) => column);
+
+  GeneratedColumn<int> get hour =>
+      $composableBuilder(column: $table.hour, builder: (column) => column);
+
+  GeneratedColumn<int> get minute =>
+      $composableBuilder(column: $table.minute, builder: (column) => column);
+
+  GeneratedColumn<String> get daysOfWeek => $composableBuilder(
+    column: $table.daysOfWeek,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  $$CoursesTableAnnotationComposer get courseId {
+    final $$CoursesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.courseId,
+      referencedTable: $db.courses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CoursesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.courses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ThemesTableAnnotationComposer get themeId {
+    final $$ThemesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.themeId,
+      referencedTable: $db.themes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThemesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.themes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReminderSubscriptionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReminderSubscriptionsTable,
+          ReminderSubscriptionRow,
+          $$ReminderSubscriptionsTableFilterComposer,
+          $$ReminderSubscriptionsTableOrderingComposer,
+          $$ReminderSubscriptionsTableAnnotationComposer,
+          $$ReminderSubscriptionsTableCreateCompanionBuilder,
+          $$ReminderSubscriptionsTableUpdateCompanionBuilder,
+          (ReminderSubscriptionRow, $$ReminderSubscriptionsTableReferences),
+          ReminderSubscriptionRow,
+          PrefetchHooks Function({bool courseId, bool themeId})
+        > {
+  $$ReminderSubscriptionsTableTableManager(
+    _$AppDatabase db,
+    $ReminderSubscriptionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReminderSubscriptionsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ReminderSubscriptionsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ReminderSubscriptionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<ReminderScope> scope = const Value.absent(),
+                Value<int?> courseId = const Value.absent(),
+                Value<int?> themeId = const Value.absent(),
+                Value<int> hour = const Value.absent(),
+                Value<int> minute = const Value.absent(),
+                Value<String?> daysOfWeek = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+              }) => ReminderSubscriptionsCompanion(
+                id: id,
+                scope: scope,
+                courseId: courseId,
+                themeId: themeId,
+                hour: hour,
+                minute: minute,
+                daysOfWeek: daysOfWeek,
+                enabled: enabled,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required ReminderScope scope,
+                Value<int?> courseId = const Value.absent(),
+                Value<int?> themeId = const Value.absent(),
+                required int hour,
+                required int minute,
+                Value<String?> daysOfWeek = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+              }) => ReminderSubscriptionsCompanion.insert(
+                id: id,
+                scope: scope,
+                courseId: courseId,
+                themeId: themeId,
+                hour: hour,
+                minute: minute,
+                daysOfWeek: daysOfWeek,
+                enabled: enabled,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $ReminderSubscriptionsTable,
+                    ReminderSubscriptionRow
+                  >(table),
+                  $$ReminderSubscriptionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({courseId = false, themeId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (courseId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.courseId,
+                        referencedTable: $$ReminderSubscriptionsTableReferences
+                            ._courseIdTable(db),
+                        referencedColumn: $$ReminderSubscriptionsTableReferences
+                            ._courseIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+                    if (themeId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.themeId,
+                        referencedTable: $$ReminderSubscriptionsTableReferences
+                            ._themeIdTable(db),
+                        referencedColumn: $$ReminderSubscriptionsTableReferences
+                            ._themeIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ReminderSubscriptionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReminderSubscriptionsTable,
+      ReminderSubscriptionRow,
+      $$ReminderSubscriptionsTableFilterComposer,
+      $$ReminderSubscriptionsTableOrderingComposer,
+      $$ReminderSubscriptionsTableAnnotationComposer,
+      $$ReminderSubscriptionsTableCreateCompanionBuilder,
+      $$ReminderSubscriptionsTableUpdateCompanionBuilder,
+      (ReminderSubscriptionRow, $$ReminderSubscriptionsTableReferences),
+      ReminderSubscriptionRow,
+      PrefetchHooks Function({bool courseId, bool themeId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6228,4 +7497,6 @@ class $AppDatabaseManager {
       $$ReviewLogsTableTableManager(_db, _db.reviewLogs);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$ReminderSubscriptionsTableTableManager get reminderSubscriptions =>
+      $$ReminderSubscriptionsTableTableManager(_db, _db.reminderSubscriptions);
 }

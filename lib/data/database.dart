@@ -3,6 +3,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flashcards2/data/converters/review_state_converter.dart';
 import 'package:flashcards2/data/daos/card_dao.dart';
 import 'package:flashcards2/data/daos/course_dao.dart';
+import 'package:flashcards2/data/daos/reminder_dao.dart';
 import 'package:flashcards2/data/daos/review_log_dao.dart';
 import 'package:flashcards2/data/daos/settings_dao.dart';
 import 'package:flashcards2/data/tables/tables.dart';
@@ -10,6 +11,7 @@ import 'package:flashcards2/data/tables/tables.dart';
 // the domain enums used by `textEnum` columns directly, so this import is
 // required here even though no hand-written code in this file names them.
 import 'package:flashcards2/domain/enums.dart';
+import 'package:flashcards2/domain/reminders/reminder.dart';
 import 'package:path_provider/path_provider.dart';
 
 part 'database.g.dart';
@@ -29,8 +31,9 @@ part 'database.g.dart';
     ScheduleStates,
     ReviewLogs,
     AppSettings,
+    ReminderSubscriptions,
   ],
-  daos: [CourseDao, CardDao, ReviewLogDao, SettingsDao],
+  daos: [CourseDao, CardDao, ReviewLogDao, SettingsDao, ReminderDao],
 )
 class AppDatabase extends _$AppDatabase {
   /// Opens the database.
@@ -47,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   static const int defaultNewCardsPerDay = kDefaultNewCardsPerDay;
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -67,6 +70,11 @@ class AppDatabase extends _$AppDatabase {
         if (from < 3) {
           await m.addColumn(appSettings, appSettings.memorySpan);
           await m.addColumn(appSettings, appSettings.forcedGenerationBarrier);
+        }
+        // v4 added `reminder_subscriptions`: a new table, no existing rows to
+        // backfill, so `createTable` is the whole migration.
+        if (from < 4) {
+          await m.createTable(reminderSubscriptions);
         }
       },
       beforeOpen: (details) async {

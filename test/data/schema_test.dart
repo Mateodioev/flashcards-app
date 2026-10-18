@@ -274,21 +274,21 @@ void main() {
     expect(await db.appSettings.select().get(), hasLength(1));
   });
 
-  test('schema version is 3 and the migration strategy is explicit', () async {
-    expect(db.schemaVersion, 3);
+  test('schema version is 4 and the migration strategy is explicit', () async {
+    expect(db.schemaVersion, 4);
     expect(db.migration.beforeOpen, isNotNull);
     expect(db.migration.onUpgrade, isNotNull);
-    expect(GeneratedHelper.versions, [1, 2, 3]);
+    expect(GeneratedHelper.versions, [1, 2, 3, 4]);
   });
 
-  test('a fresh database matches the committed v3 snapshot', () async {
+  test('a fresh database matches the committed v4 snapshot', () async {
     // `GeneratedHelper` is generated from the committed
-    // `drift_schemas/drift_schema_v3.json`. Opening a database from that
+    // `drift_schemas/drift_schema_v4.json`. Opening a database from that
     // snapshot and validating it compares the *snapshot* against the schema
     // the table declarations generate from scratch — so this fails if the
     // committed JSON and the Drift tables ever drift apart.
     final verifier = SchemaVerifier(GeneratedHelper());
-    final schema = await verifier.schemaAt(3);
+    final schema = await verifier.schemaAt(4);
     final opened = AppDatabase(schema.newConnection());
 
     await opened.validateDatabaseSchema();
@@ -296,7 +296,7 @@ void main() {
     await opened.close();
   });
 
-  test('migrating v1 to v3 carries every added column', () async {
+  test('migrating v1 to v4 carries every added column and table', () async {
     // Walks the full chain, not just the newest hop: an install that skipped a
     // release must still land on the current schema.
     final verifier = SchemaVerifier(GeneratedHelper());
@@ -339,6 +339,12 @@ void main() {
       expect(settings.memorySpan, isNull);
       expect(settings.forcedGenerationBarrier, isFalse);
     }
+
+    // v4 is a pure table addition: the table must exist and hold nothing.
+    expect(
+      await upgraded.select(upgraded.reminderSubscriptions).get(),
+      isEmpty,
+    );
 
     await upgraded.close();
   });
