@@ -294,6 +294,116 @@ final class ReminderRepositoryProvider
 String _$reminderRepositoryHash() =>
     r'f3b1ba9e0ec7a4019437dfb13de176323468baaf';
 
+@ProviderFor(notificationGateway)
+final notificationGatewayProvider = NotificationGatewayProvider._();
+
+final class NotificationGatewayProvider
+    extends
+        $FunctionalProvider<
+          NotificationGateway,
+          NotificationGateway,
+          NotificationGateway
+        >
+    with $Provider<NotificationGateway> {
+  NotificationGatewayProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'notificationGatewayProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$notificationGatewayHash();
+
+  @$internal
+  @override
+  $ProviderElement<NotificationGateway> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  NotificationGateway create(Ref ref) {
+    return notificationGateway(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(NotificationGateway value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<NotificationGateway>(value),
+    );
+  }
+}
+
+String _$notificationGatewayHash() =>
+    r'd8dc886357ae79dab5eecc3e2d4589b9976426bf';
+
+/// Cancels every scheduled reminder and reschedules from the database —
+/// the canonical reconciliation rule (plan §1). The returned closure is how
+/// every caller (app start, every subscription save/delete, restore after
+/// backup) triggers the same code path; nothing tracks OS state piecewise.
+
+@ProviderFor(reminderReschedule)
+final reminderRescheduleProvider = ReminderRescheduleProvider._();
+
+/// Cancels every scheduled reminder and reschedules from the database —
+/// the canonical reconciliation rule (plan §1). The returned closure is how
+/// every caller (app start, every subscription save/delete, restore after
+/// backup) triggers the same code path; nothing tracks OS state piecewise.
+
+final class ReminderRescheduleProvider
+    extends
+        $FunctionalProvider<
+          Future<void> Function(),
+          Future<void> Function(),
+          Future<void> Function()
+        >
+    with $Provider<Future<void> Function()> {
+  /// Cancels every scheduled reminder and reschedules from the database —
+  /// the canonical reconciliation rule (plan §1). The returned closure is how
+  /// every caller (app start, every subscription save/delete, restore after
+  /// backup) triggers the same code path; nothing tracks OS state piecewise.
+  ReminderRescheduleProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reminderRescheduleProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reminderRescheduleHash();
+
+  @$internal
+  @override
+  $ProviderElement<Future<void> Function()> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Future<void> Function() create(Ref ref) {
+    return reminderReschedule(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Future<void> Function() value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Future<void> Function()>(value),
+    );
+  }
+}
+
+String _$reminderRescheduleHash() =>
+    r'27dbd8cbd979eced8d22a7238dfdc5afb17f0d0a';
+
 /// Non-archived courses.
 ///
 /// Invalidate after any create, edit or delete so the list rebuilds from the

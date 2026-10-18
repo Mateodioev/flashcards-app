@@ -28,11 +28,31 @@ Future<void> main() async {
 ///
 /// Watchful rather than stateless because the theme mode is persisted: changing
 /// it in settings must re-render the whole app without a restart.
-class FlashcardsApp extends ConsumerWidget {
+class FlashcardsApp extends ConsumerStatefulWidget {
   const new({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FlashcardsApp> createState() => _FlashcardsAppState();
+}
+
+class _FlashcardsAppState extends ConsumerState<FlashcardsApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Plan §1: reconcile on every app start — backstop for reboots and time
+    // zone changes. Errors are swallowed here exactly like the onboarding
+    // gate below: a scheduling failure must never lock the learner out.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await ref.read(reminderRescheduleProvider)();
+      } on Object catch (_) {
+        // Best effort; the next save or app start reconciles again.
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final mode = ref.watch(themeModeProvider);
     final settings = ref.watch(appSettingsProvider);
 

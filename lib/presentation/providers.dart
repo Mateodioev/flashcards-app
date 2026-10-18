@@ -1,5 +1,6 @@
 import 'package:flashcards2/data/ai/openai_compatible_client.dart';
 import 'package:flashcards2/data/database.dart';
+import 'package:flashcards2/data/notifications/local_notification_gateway.dart';
 import 'package:flashcards2/data/repositories/drift_card_repository.dart';
 import 'package:flashcards2/data/repositories/drift_course_repository.dart';
 import 'package:flashcards2/data/repositories/drift_reminder_repository.dart';
@@ -13,7 +14,9 @@ import 'package:flashcards2/domain/entities/scheduling.dart';
 import 'package:flashcards2/domain/entities/theme.dart';
 import 'package:flashcards2/domain/enums.dart';
 import 'package:flashcards2/domain/onboarding/onboarding_service.dart';
+import 'package:flashcards2/domain/reminders/notification_gateway.dart';
 import 'package:flashcards2/domain/reminders/reminder_repository.dart';
+import 'package:flashcards2/domain/reminders/reminder_sync.dart';
 import 'package:flashcards2/domain/repositories/card_repository.dart';
 import 'package:flashcards2/domain/repositories/course_repository.dart';
 import 'package:flashcards2/domain/repositories/review_log_repository.dart';
@@ -21,6 +24,7 @@ import 'package:flashcards2/domain/repositories/settings_repository.dart';
 import 'package:flashcards2/presentation/search/card_search.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 part 'providers.g.dart';
 
@@ -58,6 +62,41 @@ SettingsRepository settingsRepository(Ref ref) {
 @Riverpod(keepAlive: true)
 ReminderRepository reminderRepository(Ref ref) {
   return DriftReminderRepository(ref.watch(databaseProvider));
+}
+
+@Riverpod(keepAlive: true)
+NotificationGateway notificationGateway(Ref ref) {
+  return LocalNotificationGateway();
+}
+
+/// Cancels every scheduled reminder and reschedules from the database —
+/// the canonical reconciliation rule (plan §1). The returned closure is how
+/// every caller (app start, every subscription save/delete, restore after
+/// backup) triggers the same code path; nothing tracks OS state piecewise.
+@Riverpod(keepAlive: true)
+Future<void> Function() reminderReschedule(Ref ref) {
+  return () async {
+    final courses = await ref
+        .read(courseRepositoryProvider)
+        .findAll(includeArchived: true);
+    final themeNames = <int, String>{};
+    for (final course in courses) {
+      for (final theme in await ref
+          .read(cardRepositoryProvider)
+          .findThemesByCourse(course.id)) {
+        themeNames[theme.id] = theme.name;
+      }
+    }
+    final sync = ReminderSync(
+      reminders: ref.read(reminderRepositoryProvider),
+      gateway: ref.read(notificationGatewayProvider),
+    );
+    await sync.rescheduleFromDatabase(
+      courseNames: {for (final course in courses) course.id: course.name},
+      themeNames: themeNames,
+      now: tz.TZDateTime.now(tz.local),
+    );
+  };
 }
 
 /// Non-archived courses.
