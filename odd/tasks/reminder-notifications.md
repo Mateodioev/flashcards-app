@@ -27,7 +27,7 @@ Source of truth: `docs/reminder_notifications_plan.md` (confirmed by user with i
 
 | # | Task | S# | Route | Status | Commit/evidence |
 |---|------|----|-------|--------|-----------------|
-| T1 | Dependencies + platform config (pubspec, manifest, app_icon drawable, timezone init wiring in main.dart) | S4, S9, S14 | inline | pending | |
+| T1 | Dependencies + platform config (pubspec, manifest, app_icon drawable, timezone init wiring in main.dart) | S4, S9, S14 | inline | ✅ done | aed516c · RED: 5 failures (perms/drawable/init function) → GREEN: 340 pass, analyze clean (2 lint infos fixed, amended) |
 | T2 | Reminder persistence: `ReminderSubscriptions` table (schema v4), migration + snapshots, DAO, drift repository, providers | S2, S13 | delegated (parallel w/ T3) | pending | |
 | T3 | Domain scheduler (pure): `notificationId`, `nextFireTime`, schedule plan; unit tests | S5, S12 | delegated (parallel w/ T2) | pending | |
 | T4 | Gateway + reconciliation: `LocalNotificationGateway`, `syncReminders()` = cancelAll + reschedule; called on app start and on subscription change | S1, S4, S5, S9, S12 | inline | pending | |
@@ -41,4 +41,5 @@ Source of truth: `docs/reminder_notifications_plan.md` (confirmed by user with i
 - L2 (2026-10-18, explorer): repo has no `ios/` directory (Android-only) — plan iOS items inapplicable (S14). `lib/main.dart` has no `WidgetsFlutterBinding.ensureInitialized()`, no navigatorKey, home is onboarding-gated `settings.when(...)`. Drift schema v3; migrations are guarded `if (from < N)` blocks; schema snapshots in `drift_schemas/`, suite in `test/data/schema_test.dart`; regenerate with `dart run drift_dev schema generate --data-classes drift_schemas/ test/generated_migrations/`. Providers are code-gen in `lib/presentation/providers.dart` (riverpod_generator). Backup is repo-based exporter/importer with field-pinned settings; adding reminders to export = new top-level JSON key (S8) — done in the T6-adjacent backup step (see T8 below if split).
 - L3 (2026-10-18): delivery strategy fixed from plan §6 "Suggested single feature branch with per-phase work-unit commits" — no chain-strategy question needed. Forecast exceeds 400 authored lines; `single-pr` covers it.
 - L4 (2026-10-18): domain seams (entity, repository interface, gateway interface, ID/scoping constants) created inline by parent BEFORE delegating T2/T3, so both parallel writers build against stable contracts without seeing each other's files.
+- L5 (2026-10-18, T1 evidence): `flutter pub add` changed 9 deps cleanly. Manifest test initially caught its own comment containing the forbidden token — reworded the comment, the test now pins the absence for real. Android-only confirmed: no iOS code written.
 - T8 added (S8 backup export/import for reminder subscriptions) — separated from T2 because it touches a different subsystem; route inline, after T4.
