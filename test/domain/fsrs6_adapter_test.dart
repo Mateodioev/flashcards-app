@@ -16,6 +16,8 @@ import 'package:flashcards2/domain/scheduling/fsrs5.dart';
 import 'package:flashcards2/domain/scheduling/fsrs6_adapter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/canonical_vectors.dart';
+
 void main() {
   group('Fsrs6SchedulerAdapter', () {
     test('reproduces the canonical FSRS-6 interval vector '
@@ -23,13 +25,8 @@ void main() {
         'under the domain step semantics', () {
       final adapter = Fsrs6SchedulerAdapter(enableFuzzing: false);
 
-      const ratings = [
-        Rating.good, Rating.good, Rating.good, Rating.good, Rating.good,
-        Rating.good, //
-        Rating.again, Rating.again, //
-        Rating.good, Rating.good, Rating.good, Rating.good, Rating.good,
-      ];
-      const expected = [0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40];
+      const ratings = fsrs6CanonicalRatings;
+      const expected = fsrs6CanonicalIntervals;
 
       // Mirror the domain Scheduler's step semantics (single 1m learning
       // step, single 10m relearning step): a review that enters a sub-day
@@ -179,6 +176,35 @@ void main() {
       final adapter = Fsrs6SchedulerAdapter(enableFuzzing: false);
       expect(adapter.nextInterval(0), 1);
       expect(adapter.nextInterval(1000000000), 36500);
+    });
+
+    test('production fuzz keeps intervals whole-day and clamped to '
+        '[1, 36500] across the random range', () {
+      // Fuzz is ON in production (constructor default, Phase 2 decision 5)
+      // and every other test runs it OFF; this is the only assertion over
+      // the fuzzed path. It cannot pin exact values (fuzz is random by
+      // design), so it pins the contract bounds that must hold for every
+      // sample: whole days, at least 1, at most the maximum interval.
+      // Native review advisory R3-fuzzed-interval-bounds-untested.
+      final production = Fsrs6SchedulerAdapter();
+      expect(production.enableFuzzing, isTrue);
+
+      var memory = production.nextMemoryState(
+        rating: Rating.good,
+      );
+      for (var i = 0; i < 200; i++) {
+        final interval = production.nextInterval(memory.stability);
+        expect(interval, inInclusiveRange(1, 36500));
+        memory = production.nextMemoryState(
+          current: memory,
+          elapsedDays: interval.toDouble(),
+          rating: Rating.good,
+        );
+      }
+      // 200 recalls sooner or later leave the 2.5-day fuzz threshold far
+      // behind; reaching a large stability proves the loop actually
+      // exercised long intervals, where fuzzing applies.
+      expect(memory.stability, greaterThan(2.5));
     });
 
     test('paired and unpaired nextInterval agree with fuzzing disabled', () {

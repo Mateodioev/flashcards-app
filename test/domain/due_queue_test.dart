@@ -3,6 +3,8 @@ import 'package:flashcards2/domain/scheduling/due_queue.dart';
 import 'package:flashcards2/domain/scheduling/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/canonical_vectors.dart';
+
 DueEntry entry(int cardId, int themeId, {int courseId = 1, int day = 1}) {
   return DueEntry(
     cardId: cardId,
@@ -147,33 +149,17 @@ void main() {
 
     test('a cutoff does not change the canonical interval history', () {
       final withCutoff = Scheduler();
-      const expected = <int>[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40];
-      const ratings = <Rating>[
-        Rating.good,
-        Rating.good,
-        Rating.good,
-        Rating.good,
-        Rating.good,
-        Rating.good,
-        Rating.again,
-        Rating.again,
-        Rating.good,
-        Rating.good,
-        Rating.good,
-        Rating.good,
-        Rating.good,
-      ];
 
       var card = const CardSchedule.newCard();
       var now = DateTime.utc(2022, 11, 29, 12, 30);
       final actual = <int>[];
-      for (final rating in ratings) {
+      for (final rating in fsrs6CanonicalRatings) {
         final outcome = withCutoff.review(card: card, rating: rating, now: now);
         card = outcome.schedule;
         actual.add(outcome.scheduledDays);
         now = card.due!;
       }
-      expect(actual, expected);
+      expect(actual, fsrs6CanonicalIntervals);
     });
   });
 }

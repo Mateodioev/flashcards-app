@@ -130,7 +130,7 @@ class Scheduler {
 
   final SchedulerConfig config;
 
-  MemoryEngine get _fsrs => config.memoryEngine;
+  MemoryEngine get _engine => config.memoryEngine;
 
   /// Whole days between [from] and [to], honouring the [cutoffHour].
   ///
@@ -177,7 +177,7 @@ class Scheduler {
         ? 0
         : elapsedDays(card.lastReview!, now, cutoffHour: config.dayCutoffHour);
 
-    final memory = _fsrs.nextMemoryState(
+    final memory = _engine.nextMemoryState(
       current: card.memory,
       elapsedDays: elapsed.toDouble(),
       rating: rating,
@@ -358,7 +358,7 @@ class Scheduler {
     DateTime now, {
     required bool lapse,
   }) {
-    final interval = _fsrs.nextInterval(memory.stability);
+    final interval = _engine.nextInterval(memory.stability);
     return CardSchedule(
       state: ReviewState.review,
       reps: card.reps + 1,

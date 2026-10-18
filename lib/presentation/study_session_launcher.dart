@@ -12,6 +12,21 @@ import 'package:flashcards2/presentation/screens/review_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// The single production scheduling configuration: FSRS-6 adapter with
+/// Anki-compatible interval fuzzing ON (the library default is fuzz-OFF,
+/// deterministic, for tests) plus the user's day-cutoff.
+///
+/// One factory — and only one — owns this policy so the per-course and
+/// global launch paths cannot desynchronize: the earlier two inline copies
+/// were caught by the native review (R2-launcher-duplicate-engine-wiring).
+/// docs/fsrs6_migration_plan.md Phase 2 decision 5.
+SchedulerConfig productionSchedulerConfig({required int dayCutoffHour}) {
+  return SchedulerConfig(
+    dayCutoffHour: dayCutoffHour,
+    memoryEngine: Fsrs6SchedulerAdapter(),
+  );
+}
+
 /// Builds and opens one study session.
 ///
 /// [theme] scopes the session to a single theme; when null the session spans
@@ -75,13 +90,7 @@ Future<void> startStudySession({
       builder: (_) => ReviewScreen(
         items: session.items,
         scheduler: Scheduler(
-          SchedulerConfig(
-            dayCutoffHour: settings.dayCutoffHour,
-            // Production composition root: Anki-compatible interval fuzzing
-            // is ON here (the library default is fuzz-OFF, deterministic,
-            // for tests). docs/fsrs6_migration_plan.md Phase 2 decision 5.
-            memoryEngine: Fsrs6SchedulerAdapter(),
-          ),
+          productionSchedulerConfig(dayCutoffHour: settings.dayCutoffHour),
         ),
         barrierEnabled: settings.forcedGenerationBarrier,
       ),
@@ -166,12 +175,7 @@ Future<void> startGlobalStudySession({
       builder: (_) => ReviewScreen(
         items: session.items,
         scheduler: Scheduler(
-          SchedulerConfig(
-            dayCutoffHour: settings.dayCutoffHour,
-            // See the identical note in startCourseStudySession: production
-            // runs the FSRS-6 adapter with fuzzing ON.
-            memoryEngine: Fsrs6SchedulerAdapter(),
-          ),
+          productionSchedulerConfig(dayCutoffHour: settings.dayCutoffHour),
         ),
         barrierEnabled: settings.forcedGenerationBarrier,
       ),

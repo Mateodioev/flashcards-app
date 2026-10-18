@@ -1,6 +1,9 @@
 import 'package:flashcards2/domain/enums.dart';
+import 'package:flashcards2/domain/scheduling/fsrs5.dart';
 import 'package:flashcards2/domain/scheduling/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/canonical_vectors.dart';
 
 /// Reproduces the canonical FSRS-6 **interval-history** vector.
 ///
@@ -22,35 +25,43 @@ void main() {
   final scheduler = Scheduler();
 
   test('interval history matches the canonical FSRS-6 vector', () {
-    const ratings = <Rating>[
-      Rating.good,
-      Rating.good,
-      Rating.good,
-      Rating.good,
-      Rating.good,
-      Rating.good,
-      Rating.again,
-      Rating.again,
-      Rating.good,
-      Rating.good,
-      Rating.good,
-      Rating.good,
-      Rating.good,
-    ];
-    const expected = <int>[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40];
-
     var card = const CardSchedule.newCard();
     var now = DateTime.utc(2022, 11, 29, 12, 30);
     final actual = <int>[];
 
-    for (final rating in ratings) {
+    for (final rating in fsrs6CanonicalRatings) {
       final outcome = scheduler.review(card: card, rating: rating, now: now);
       card = outcome.schedule;
       actual.add(outcome.scheduledDays);
       now = card.due!;
     }
 
-    expect(actual, expected);
+    expect(actual, fsrs6CanonicalIntervals);
+  });
+
+  test('ROLLBACK GATE: Fsrs5Scheduler through the Scheduler seam still '
+      'reproduces the FSRS-5 vector', () {
+    // The migration's rollback contract (docs/fsrs6_migration_plan.md,
+    // Phase 6) claims rollback is a config swap. This proves it through the
+    // integration seam — the frozen engine wired into SchedulerConfig —
+    // not just through the engine in isolation (that is what
+    // fsrs5_reference_vectors_test covers). Native review advisory
+    // R3-rollback-contract-untested.
+    final rollback = Scheduler(
+      SchedulerConfig(memoryEngine: const Fsrs5Scheduler()),
+    );
+
+    var card = const CardSchedule.newCard();
+    var now = DateTime.utc(2022, 11, 29, 12, 30);
+    final actual = <int>[];
+    for (final rating in fsrs6CanonicalRatings) {
+      final outcome = rollback.review(card: card, rating: rating, now: now);
+      card = outcome.schedule;
+      actual.add(outcome.scheduledDays);
+      now = card.due!;
+    }
+
+    expect(actual, fsrs5CanonicalIntervals);
   });
 
   test('a new card with Easy graduates immediately', () {
