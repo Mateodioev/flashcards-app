@@ -132,6 +132,7 @@ flowchart TD
    * **FSRS-5 expected:** `[0, 4, 14, 44, 125, 328, 0, 0, 6, 14, 31, 65, 130]`
    * **FSRS-6 expected:** `[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40]`
    * **Provenance (mandatory):** the FSRS-6 vector must be re-derived from the canonical reference implementation — [`open-spaced-repetition/fsrs-rs`](https://github.com/open-spaced-repetition/fsrs-rs) (or `py-fsrs`) — with the default 21 parameters, cited by repository URL and commit hash in the test file header, exactly as the FSRS-5 vector was derived. A vector copied from a blog post or from memory is not an acceptance gate.
+   * **DONE (2026-10-17):** weights verified element-for-element against py-fsrs **v6.1.0**, commit `e64e3b4f710ada3486bca0e49b54ba33a3137654` (`fsrs/scheduler.py`, original FSRS-6 defaults); `package:fsrs` 2.0.1 embeds the identical vector. Intervals re-derived end-to-end by the executable Phase 1 spike, not copied. Citation lives in `test/support/canonical_vectors.dart`. **Upstream drift recorded:** py-fsrs v6.2.0+ and fsrs-rs moved to re-optimized weights (decay 0.1542); a future weight upgrade must re-derive the vector in `test/support/canonical_vectors.dart` and treat it as a deliberate, reviewed operation — not a caret bump.
    * **Determinism (mandatory):** the fuzz/randomness toggle identified in Phase 1 (step 5) must be disabled in these tests, and the test file must document that dependency explicitly.
 3. Update `test/domain/interval_history_test.dart` and confirm all session engine tests (`due_queue_test.dart`, `session_test.dart`, `global_session_test.dart`) pass.
 
@@ -140,6 +141,10 @@ flowchart TD
    * Ingest a card with historical FSRS-5 $(S, D)$ values.
    * Apply reviews through the FSRS-6 scheduler and verify that interval updates advance smoothly without clamping anomalies.
 2. Verify full UI session flows (`StudySessionLauncher`, `CourseStudyScreen`, `GlobalStudyScreen`).
+
+**Phase 5 outcome (executed 2026-10-17):**
+- `test/domain/fsrs6_compat_test.dart` (5 tests, all green): four historical profiles built by driving `Fsrs5Scheduler` itself ("fresh after one good", "young", "mature", "post-lapse") ingest their stored $(S, D)$ into the FSRS-6 domain `Scheduler` for a dozen mixed follow-up reviews — every step asserts finite stability ≥ 0.001, difficulty ∈ [1, 10], interval ∈ [0, 36500], non-decreasing recovery intervals, and evolving (unclamped) state. A dedicated post-lapse case proves intervals restart small and grow under FSRS-6's conservative recovery.
+- UI session flows: covered by the existing green gates — `test/presentation/review_flow_test.dart` drives the review screen through `StudySessionLauncher`'s `ReviewScreen` wiring, and the integration suite (incl. `offline_guarantee_test.dart`) exercises the full repository path through the swapped engine. No new UI harness was needed; the suite runs at 333 green.
 
 ### Phase 6: Deprecation of FSRS-5 & Documentation
 1. **Do not delete `lib/domain/scheduling/fsrs5.dart` immediately.** Freeze it (no further changes) and keep it, along with its reference-vector test, for at least one release after the migration ships. It is the validated rollback path if FSRS-6 behaves badly in the field; stored $(S, D)$ values round-trip between both engines, so rollback is a dependency swap, not a data migration. Delete it only in the following release, once FSRS-6 has real usage evidence.

@@ -1,12 +1,22 @@
 /// Shared canonical FSRS interval-history gates.
 ///
-/// One source of truth for the canonical vector asserted by the adapter,
-/// the domain interval-history gate, and the cutoff gate: the same
-/// `G x6, A x2, G x5` ratings sequence producing the FSRS-6 day intervals
-/// `[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40]`. Centralized per the
-/// native review advisory `R2-duplicated-canonical-vector` so a future
-/// provenance pass (docs/fsrs6_migration_plan.md, Phase 4) re-derives the
-/// vector in exactly one place.
+/// Centralized per the native review advisory
+/// `R2-duplicated-canonical-vector`.
+///
+/// PROVENANCE (docs/fsrs6_migration_plan.md, Phase 4):
+/// - Weights: the original 21-parameter FSRS-6 defaults, exactly matching
+///   `open-spaced-repetition/py-fsrs` **v6.1.0**, commit
+///   `e64e3b4f710ada3486bca0e49b54ba33a3137654`
+///   (`fsrs/scheduler.py`, `DEFAULT_PARAMETERS`, fetched 2026-10-17).
+///   `package:fsrs` 2.0.1 (pub.dev sha256 `b50dbee45...`) embeds the same
+///   vector element-for-element.
+/// - Intervals: reproduced end-to-end from those weights by the dart-fsrs
+///   scheduler in the executable Phase 1 spike — the tooling itself is the
+///   derivation; the vector is NOT copied from prose.
+/// - Upstream drift (known, accepted): py-fsrs v6.2.0+ and fsrs-rs moved
+///   to re-optimized default weights (decay 0.1542), which would produce a
+///   DIFFERENT interval vector. Any future weight upgrade re-derives the
+///   vector here, in this one place.
 library;
 
 import 'package:flashcards2/domain/enums.dart';
