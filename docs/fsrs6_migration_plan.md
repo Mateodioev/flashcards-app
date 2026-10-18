@@ -119,6 +119,12 @@ flowchart TD
    * Multi-step indices (`step` in `schedule_states`) continue to resume across application restarts.
 3. Validate that `AccuracyHeuristic` remains decoupled from the memory math.
 
+**Phase 3 outcome (executed 2026-10-17):**
+- `MemoryState` extracted to `lib/domain/scheduling/memory_state.dart` (re-exported from `fsrs5.dart`); new `memory_engine.dart` defines the `MemoryEngine` contract (abstract class option taken). Both `Fsrs5Scheduler` (frozen rollback) and `Fsrs6SchedulerAdapter` implement it, so rollback stays a config swap.
+- `SchedulerConfig.memoryEngine` defaults to `Fsrs6SchedulerAdapter(enableFuzzing: false)` — deterministic library default; the production composition root (`study_session_launcher.dart`, both launch paths) explicitly wires `Fsrs6SchedulerAdapter()` with fuzzing ON per decision 5. `Scheduler`/`SchedulerConfig` are no longer `const` (a live package wrapper cannot be); test call sites dropped `const`.
+- `AccuracyHeuristic` verified decoupled: it reads the append-only review log and contains no memory math; untouched.
+- Vector gates migrated in the same work unit to keep the suite green: `interval_history_test.dart` and the `due_queue_test.dart` cutoff test now assert the canonical FSRS-6 vector `[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40]`; the easy-initial assertion is `w3 = 16.1507` → 16 days. `fsrs5_reference_vectors_test.dart` stays frozen against `Fsrs5Scheduler` directly (rollback evidence, Phase 6). The canonical FSRS-6 interval gate therefore lives in three places (`fsrs6_adapter_test.dart`, `interval_history_test.dart`, `due_queue_test.dart`), replacing the Phase 4 step-1 file swap; provenance still owed per Phase 4. Full suite: 326 tests green at integration time.
+
 ### Phase 4: Canonical Vector & Unit Test Migration
 1. Replace `test/domain/fsrs5_reference_vectors_test.dart` with `test/domain/fsrs6_reference_vectors_test.dart`.
 2. Update the acceptance gate to the canonical FSRS-6 interval vector:

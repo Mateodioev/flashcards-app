@@ -1,5 +1,7 @@
 import 'package:flashcards2/domain/enums.dart';
-import 'package:flashcards2/domain/scheduling/fsrs5.dart';
+import 'package:flashcards2/domain/scheduling/fsrs6_adapter.dart';
+import 'package:flashcards2/domain/scheduling/memory_engine.dart';
+import 'package:flashcards2/domain/scheduling/memory_state.dart';
 
 /// A card's full scheduling position.
 ///
@@ -46,12 +48,16 @@ class CardSchedule {
 /// which graduates a card on the first successful learning review — that is
 /// [singleStep]. Anki-style scheduling uses [ankiDefault].
 class SchedulerConfig {
-  const new({
+  /// Not `const`: the default engine is a live `package:fsrs` wrapper,
+  /// which cannot be a compile-time constant. Tests that were `const`
+  /// Scheduler constructions simply drop the keyword.
+  new({
     this.learningSteps = singleStep,
     this.relearningSteps = singleStep,
-    this.fsrs = const Fsrs5Scheduler(),
+    MemoryEngine? memoryEngine,
     this.dayCutoffHour = defaultDayCutoffHour,
-  });
+  }) : memoryEngine =
+           memoryEngine ?? Fsrs6SchedulerAdapter(enableFuzzing: false);
 
   /// Hour (0-23) at which a new scheduling day begins, in local time.
   ///
@@ -81,7 +87,15 @@ class SchedulerConfig {
 
   final List<Duration> learningSteps;
   final List<Duration> relearningSteps;
-  final Fsrs5Scheduler fsrs;
+
+  /// The memory-math engine. Defaults to the FSRS-6 adapter with fuzzing
+  /// OFF: the library default stays deterministic for tests and analysis;
+  /// the production composition root (`study_session_launcher.dart`)
+  /// explicitly opts into Anki-compatible fuzzing
+  /// (docs/fsrs6_migration_plan.md, Phase 2 decision 5).
+  ///
+  /// `Fsrs5Scheduler` remains a valid engine (the frozen rollback path).
+  final MemoryEngine memoryEngine;
   final int dayCutoffHour;
 }
 
@@ -107,15 +121,16 @@ class ReviewOutcome {
   final int elapsedDays;
 }
 
-/// Drives [Fsrs5Scheduler] with learning steps and card states.
+/// Drives a [MemoryEngine] (FSRS-6 adapter by default) with learning steps
+/// and card states.
 ///
 /// Pure Dart: no Flutter, no Drift, no clock. Every method takes `now`.
 class Scheduler {
-  const new([this.config = const SchedulerConfig()]);
+  new([SchedulerConfig? config]) : config = config ?? SchedulerConfig();
 
   final SchedulerConfig config;
 
-  Fsrs5Scheduler get _fsrs => config.fsrs;
+  MemoryEngine get _fsrs => config.memoryEngine;
 
   /// Whole days between [from] and [to], honouring the [cutoffHour].
   ///

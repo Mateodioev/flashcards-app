@@ -48,7 +48,7 @@ void main() {
       child: MaterialApp(
         home: ReviewScreen(
           items: items,
-          scheduler: const Scheduler(),
+          scheduler: Scheduler(),
           barrierEnabled: barrier,
         ),
       ),

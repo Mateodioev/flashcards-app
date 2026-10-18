@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flashcards2/domain/enums.dart';
-import 'package:flashcards2/domain/scheduling/fsrs5.dart';
+import 'package:flashcards2/domain/scheduling/memory_engine.dart';
+import 'package:flashcards2/domain/scheduling/memory_state.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
 
 /// Anti-corruption layer between the domain scheduler and `package:fsrs`
@@ -42,7 +43,7 @@ import 'package:fsrs/fsrs.dart' as fsrs;
 ///   boundary with its own tests.
 /// - **Fuzz policy:** ON in production (constructor default), OFF in every
 ///   test harness via `enableFuzzing: false`.
-class Fsrs6SchedulerAdapter {
+class Fsrs6SchedulerAdapter implements MemoryEngine {
   /// Creates the adapter around a default-parameter FSRS-6 scheduler.
   ///
   /// [enableFuzzing] defaults to `true` — the Anki-compatible production
@@ -99,6 +100,7 @@ class Fsrs6SchedulerAdapter {
   /// day-index value the domain `Scheduler` computes); it is injected into
   /// the package through fabricated timestamps. A `null` [current] is the
   /// card's first review and initializes (S, D) from the rating.
+  @override
   MemoryState nextMemoryState({
     required Rating rating,
     MemoryState? current,
@@ -146,6 +148,7 @@ class Fsrs6SchedulerAdapter {
   /// the closed-form FSRS interval from the scheduler's public parameters —
   /// the same formula as the package's private `_nextInterval`, derived
   /// live so a future optimized weight vector stays consistent.
+  @override
   int nextInterval(double stability) {
     if (stability == _lastProducedStability &&
         _lastProducedIntervalDays != null) {

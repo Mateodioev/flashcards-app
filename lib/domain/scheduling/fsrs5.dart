@@ -1,6 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flashcards2/domain/enums.dart';
+import 'package:flashcards2/domain/scheduling/memory_engine.dart';
+import 'package:flashcards2/domain/scheduling/memory_state.dart';
+
+export 'memory_state.dart' show MemoryState;
 
 /// FSRS-5 constants.
 ///
@@ -65,22 +69,15 @@ abstract final class Fsrs5 {
   ];
 }
 
-/// The two-dimensional FSRS memory state.
-class MemoryState {
-  const new({required this.stability, required this.difficulty});
-
-  /// Days for retrievability to fall from 100% to 90%.
-  final double stability;
-
-  /// Intrinsic difficulty in `[1, 10]`.
-  final double difficulty;
-}
-
 /// Pure-Dart FSRS-5 scheduler.
 ///
 /// Deliberately free of Flutter and Drift so it can be tested without a widget
 /// or database harness.
-class Fsrs5Scheduler {
+///
+/// Kept frozen after the FSRS-6 migration as the rollback engine
+/// (docs/fsrs6_migration_plan.md, Phase 6); `MemoryState` lives in
+/// `memory_state.dart` and is re-exported here for existing importers.
+class Fsrs5Scheduler implements MemoryEngine {
   const new({
     this.weights = Fsrs5.defaultWeights,
     this.enableShortTerm = true,
@@ -121,6 +118,7 @@ class Fsrs5Scheduler {
   }
 
   /// The next interval in whole days for a given [stability].
+  @override
   int nextInterval(double stability) {
     final raw = stability * intervalModifier;
     return raw.round().clamp(1, Fsrs5.maximumInterval);
@@ -219,6 +217,7 @@ class Fsrs5Scheduler {
   /// Dispatch order matters and mirrors the reference implementation exactly:
   /// no prior state -> initialise; `elapsedDays == 0` with short-term enabled
   /// -> same-day formula; `again` -> lapse formula; otherwise -> recall.
+  @override
   MemoryState nextMemoryState({
     required MemoryState? current,
     required double elapsedDays,

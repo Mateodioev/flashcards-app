@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
 import 'package:flashcards2/domain/onboarding/memory_span.dart';
+import 'package:flashcards2/domain/scheduling/fsrs6_adapter.dart';
 import 'package:flashcards2/domain/scheduling/global_session.dart';
 import 'package:flashcards2/domain/scheduling/scheduler.dart';
 import 'package:flashcards2/domain/scheduling/session.dart';
@@ -74,7 +75,13 @@ Future<void> startStudySession({
       builder: (_) => ReviewScreen(
         items: session.items,
         scheduler: Scheduler(
-          SchedulerConfig(dayCutoffHour: settings.dayCutoffHour),
+          SchedulerConfig(
+            dayCutoffHour: settings.dayCutoffHour,
+            // Production composition root: Anki-compatible interval fuzzing
+            // is ON here (the library default is fuzz-OFF, deterministic,
+            // for tests). docs/fsrs6_migration_plan.md Phase 2 decision 5.
+            memoryEngine: Fsrs6SchedulerAdapter(),
+          ),
         ),
         barrierEnabled: settings.forcedGenerationBarrier,
       ),
@@ -159,7 +166,12 @@ Future<void> startGlobalStudySession({
       builder: (_) => ReviewScreen(
         items: session.items,
         scheduler: Scheduler(
-          SchedulerConfig(dayCutoffHour: settings.dayCutoffHour),
+          SchedulerConfig(
+            dayCutoffHour: settings.dayCutoffHour,
+            // See the identical note in startCourseStudySession: production
+            // runs the FSRS-6 adapter with fuzzing ON.
+            memoryEngine: Fsrs6SchedulerAdapter(),
+          ),
         ),
         barrierEnabled: settings.forcedGenerationBarrier,
       ),

@@ -86,7 +86,7 @@ void main() {
         reason: 'a new card has no schedule yet',
       );
 
-      const scheduler = Scheduler();
+      final scheduler = Scheduler();
       final now = DateTime(2022, 1, 2);
       final outcome = scheduler.review(
         card: const CardSchedule.newCard(),

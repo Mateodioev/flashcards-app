@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// second step changes the sequence by design, which is exactly why the two are
 /// tested separately rather than one being bent to satisfy the other.
 void main() {
-  const scheduler = Scheduler(
+  final scheduler = Scheduler(
     SchedulerConfig(
       learningSteps: SchedulerConfig.ankiLearning,
       relearningSteps: SchedulerConfig.ankiRelearning,

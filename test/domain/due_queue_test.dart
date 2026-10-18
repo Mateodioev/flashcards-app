@@ -146,8 +146,8 @@ void main() {
     });
 
     test('a cutoff does not change the canonical interval history', () {
-      const withCutoff = Scheduler();
-      const expected = <int>[0, 4, 14, 44, 125, 328, 0, 0, 6, 14, 31, 65, 130];
+      final withCutoff = Scheduler();
+      const expected = <int>[0, 4, 14, 45, 135, 372, 0, 0, 2, 5, 10, 20, 40];
       const ratings = <Rating>[
         Rating.good,
         Rating.good,
