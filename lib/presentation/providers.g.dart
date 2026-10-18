@@ -541,6 +541,148 @@ final class ReminderRescheduleProvider
 String _$reminderRescheduleHash() =>
     r'27dbd8cbd979eced8d22a7238dfdc5afb17f0d0a';
 
+/// Every reminder subscription, streamed from the repository (plan D4): the
+/// reminder-settings screen (T6) rebuilds its rows whenever a save or delete
+/// lands, instead of hand-maintaining a copy.
+
+@ProviderFor(reminderSubscriptions)
+final reminderSubscriptionsProvider = ReminderSubscriptionsProvider._();
+
+/// Every reminder subscription, streamed from the repository (plan D4): the
+/// reminder-settings screen (T6) rebuilds its rows whenever a save or delete
+/// lands, instead of hand-maintaining a copy.
+
+final class ReminderSubscriptionsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ReminderSubscription>>,
+          List<ReminderSubscription>,
+          Stream<List<ReminderSubscription>>
+        >
+    with
+        $FutureModifier<List<ReminderSubscription>>,
+        $StreamProvider<List<ReminderSubscription>> {
+  /// Every reminder subscription, streamed from the repository (plan D4): the
+  /// reminder-settings screen (T6) rebuilds its rows whenever a save or delete
+  /// lands, instead of hand-maintaining a copy.
+  ReminderSubscriptionsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reminderSubscriptionsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reminderSubscriptionsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<ReminderSubscription>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<ReminderSubscription>> create(Ref ref) {
+    return reminderSubscriptions(ref);
+  }
+}
+
+String _$reminderSubscriptionsHash() =>
+    r'63168aff0be21f06a32e6545c951b9e691eac697';
+
+/// Current OS access state (T5/S10). Read-only: requesting the permission is
+/// the save flow's job, this provider only decides whether the banner that
+/// explains why reminders will not fire is visible.
+
+@ProviderFor(reminderAccess)
+final reminderAccessProvider = ReminderAccessProvider._();
+
+/// Current OS access state (T5/S10). Read-only: requesting the permission is
+/// the save flow's job, this provider only decides whether the banner that
+/// explains why reminders will not fire is visible.
+
+final class ReminderAccessProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ReminderAccess>,
+          ReminderAccess,
+          FutureOr<ReminderAccess>
+        >
+    with $FutureModifier<ReminderAccess>, $FutureProvider<ReminderAccess> {
+  /// Current OS access state (T5/S10). Read-only: requesting the permission is
+  /// the save flow's job, this provider only decides whether the banner that
+  /// explains why reminders will not fire is visible.
+  ReminderAccessProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reminderAccessProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reminderAccessHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<ReminderAccess> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<ReminderAccess> create(Ref ref) {
+    return reminderAccess(ref);
+  }
+}
+
+String _$reminderAccessHash() => r'9236c95ea20eafc0c68d524ca36cb9d2f5a3009d';
+
+@ProviderFor(reminderTargets)
+final reminderTargetsProvider = ReminderTargetsProvider._();
+
+final class ReminderTargetsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ReminderTargets>,
+          ReminderTargets,
+          FutureOr<ReminderTargets>
+        >
+    with $FutureModifier<ReminderTargets>, $FutureProvider<ReminderTargets> {
+  ReminderTargetsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reminderTargetsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reminderTargetsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<ReminderTargets> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<ReminderTargets> create(Ref ref) {
+    return reminderTargets(ref);
+  }
+}
+
+String _$reminderTargetsHash() => r'21dd44ac012e1843e120858ffb51bbd673a86d80';
+
 /// Non-archived courses.
 ///
 /// Invalidate after any create, edit or delete so the list rebuilds from the

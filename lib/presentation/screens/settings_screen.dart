@@ -4,6 +4,7 @@ import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/screens/ai_settings_screen.dart';
 import 'package:flashcards2/presentation/screens/backup_section.dart';
 import 'package:flashcards2/presentation/screens/onboarding_screen.dart';
+import 'package:flashcards2/presentation/screens/reminder_settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -100,6 +101,21 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: const Text(
                 'The answer stays hidden until you attempt it. Useful if you '
                 'tend to recognise answers without recalling them.',
+              ),
+            ),
+            const Divider(),
+            const _SectionHeader('Reminders'),
+            ListTile(
+              leading: const Icon(Icons.alarm_outlined),
+              title: const Text('Study reminders'),
+              subtitle: const Text(
+                'Daily reminders for everything, a course, or a theme',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ReminderSettingsScreen(),
+                ),
               ),
             ),
             const Divider(),

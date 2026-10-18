@@ -129,6 +129,66 @@ Future<void> Function() reminderReschedule(Ref ref) {
   };
 }
 
+/// Every reminder subscription, streamed from the repository (plan D4): the
+/// reminder-settings screen (T6) rebuilds its rows whenever a save or delete
+/// lands, instead of hand-maintaining a copy.
+@riverpod
+Stream<List<ReminderSubscription>> reminderSubscriptions(Ref ref) {
+  return ref.watch(reminderRepositoryProvider).watchAll();
+}
+
+/// Current OS access state (T5/S10). Read-only: requesting the permission is
+/// the save flow's job, this provider only decides whether the banner that
+/// explains why reminders will not fire is visible.
+@riverpod
+Future<ReminderAccess> reminderAccess(Ref ref) {
+  return ref.watch(notificationGatewayProvider).accessState();
+}
+
+/// A reminder target resolved for display: its name and whether the owning
+/// course is archived (plan §7 default: archived reminders stay listed but
+/// are visually marked).
+typedef CourseTarget = ({String name, bool archived});
+
+/// A theme target, with the course context the D4 scope picker needs to
+/// group themes under their course names.
+typedef ThemeTarget = ({int id, String name, String courseName, bool archived});
+
+/// Every target the reminders UI can show or pick: all courses INCLUDING
+/// archived ones (unlike [coursesProvider], which filters them out) as a
+/// lookup map, and every theme ordered by course so the theme picker lists
+/// them grouped with course names.
+typedef ReminderTargets = ({
+  Map<int, CourseTarget> courses,
+  List<ThemeTarget> themes,
+});
+
+@riverpod
+Future<ReminderTargets> reminderTargets(Ref ref) async {
+  final courses = await ref
+      .watch(courseRepositoryProvider)
+      .findAll(includeArchived: true);
+  final courseMap = <int, CourseTarget>{
+    for (final course in courses)
+      course.id: (name: course.name, archived: course.archived),
+  };
+  final themes = <ThemeTarget>[];
+  for (final course in courses) {
+    final themesOfCourse = await ref
+        .read(cardRepositoryProvider)
+        .findThemesByCourse(course.id);
+    for (final theme in themesOfCourse) {
+      themes.add((
+        id: theme.id,
+        name: theme.name,
+        courseName: course.name,
+        archived: course.archived,
+      ));
+    }
+  }
+  return (courses: courseMap, themes: themes);
+}
+
 /// Non-archived courses.
 ///
 /// Invalidate after any create, edit or delete so the list rebuilds from the
