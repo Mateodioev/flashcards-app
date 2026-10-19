@@ -8,9 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// Two behaviours are deliberate:
 ///
-///  * **Export says where the file went.** A backup the learner cannot find is
-///    not a backup. The path is shown rather than copied to the clipboard
-///    silently, because a silent clipboard write is invisible.
+///  * **Export opens the share sheet.** A backup the learner cannot move off
+///    the device is not a backup. The file is written first and then handed
+///    to the platform share sheet, so it can go straight to WhatsApp,
+///    Telegram, Drive, etc. The path is still shown as a fallback, in case
+///    the share sheet was dismissed or failed.
 ///  * **Restore is additive and says so.** Nothing is deleted, so a wrong
 ///    import costs clutter, not data. That is what makes it safe to offer
 ///    without a scary confirmation, and the dialog states it plainly rather
@@ -45,11 +47,11 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
       children: <Widget>[
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.download_outlined),
-          title: const Text('Export a backup'),
+          leading: const Icon(Icons.share_outlined),
+          title: const Text('Share a backup'),
           subtitle: const Text(
-            'Writes a JSON file to this device. Your API key is never '
-            'included.',
+            'Opens the share sheet with a JSON file, so you can send it to '
+            'WhatsApp, Telegram, Drive, etc. Your API key is never included.',
           ),
           trailing: _busy
               ? const SizedBox(
@@ -92,12 +94,22 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     try {
       final backup = await ref.read(backupExporterProvider).export();
       final path = await ref.read(backupFilesProvider).write(backup);
+      // The share happens after the write: whatever the learner does with
+      // the sheet, the file is already on disk and the path below is the
+      // fallback. A share failure is therefore not an export failure — the
+      // file exists and the path is shown, so it is swallowed on purpose.
+      try {
+        await ref.read(backupSharerProvider).share(path);
+      } on Object {
+        // Sharing is best-effort; the written file is the real backup.
+      }
       if (!mounted) return;
       setState(() {
         _writing = false;
         _message =
             'Backed up ${backup.cardCount} '
-            '${backup.cardCount == 1 ? 'card' : 'cards'} to:\n$path';
+            '${backup.cardCount == 1 ? 'card' : 'cards'}. '
+            'The file is also saved at:\n$path';
       });
     } on Object catch (e) {
       if (!mounted) return;

@@ -49,6 +49,10 @@ dependencies:
   package_info_plus: ^10.2.2
   path_provider: ^2.1.6
   riverpod_annotation: ^4.0.7
+  # share_plus opens the platform share sheet (ACTION_SEND on Android), so a
+  # backup can go to WhatsApp, Telegram, Drive, etc. without the learner ever
+  # seeing a filesystem path.
+  share_plus: ^13.3.1
   timezone: ^0.11.2
 
 dev_dependencies:

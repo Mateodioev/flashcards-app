@@ -5,6 +5,7 @@ import 'package:flashcards2/domain/backup/backup_io.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:share_plus/share_plus.dart';
 
 part 'backup_files.g.dart';
 
@@ -69,6 +70,29 @@ class FileBackupFiles implements BackupFiles {
 /// The filesystem bridge, overridden in tests with an in-memory implementation.
 @Riverpod(keepAlive: true)
 BackupFiles backupFiles(Ref ref) => FileBackupFiles();
+
+/// Hands a written backup to the platform share sheet.
+///
+/// Kept as an interface because the real implementation only exists behind a
+/// platform channel: widget tests would hit `MissingPluginException` without
+/// a fake to override, exactly like [BackupFiles] above.
+abstract interface class BackupSharer {
+  /// Opens the share sheet with the file at [path].
+  Future<void> share(String path);
+}
+
+class SharePlusBackupSharer implements BackupSharer {
+  @override
+  Future<void> share(String path) {
+    return SharePlus.instance.share(
+      ShareParams(files: [XFile(path)]),
+    );
+  }
+}
+
+/// The share bridge, overridden in tests so no platform channel is needed.
+@Riverpod(keepAlive: true)
+BackupSharer backupSharer(Ref ref) => SharePlusBackupSharer();
 
 /// The exporter, wired to the real repositories.
 @Riverpod(keepAlive: true)

@@ -54,6 +54,52 @@ final class BackupFilesProvider
 
 String _$backupFilesHash() => r'4000981a32dcfddc842a8bffccf47b6818194684';
 
+/// The share bridge, overridden in tests so no platform channel is needed.
+
+@ProviderFor(backupSharer)
+final backupSharerProvider = BackupSharerProvider._();
+
+/// The share bridge, overridden in tests so no platform channel is needed.
+
+final class BackupSharerProvider
+    extends $FunctionalProvider<BackupSharer, BackupSharer, BackupSharer>
+    with $Provider<BackupSharer> {
+  /// The share bridge, overridden in tests so no platform channel is needed.
+  BackupSharerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'backupSharerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$backupSharerHash();
+
+  @$internal
+  @override
+  $ProviderElement<BackupSharer> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  BackupSharer create(Ref ref) {
+    return backupSharer(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BackupSharer value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BackupSharer>(value),
+    );
+  }
+}
+
+String _$backupSharerHash() => r'7b60ceed8780e492828baa71199e93de384ac442';
+
 /// The exporter, wired to the real repositories.
 
 @ProviderFor(backupExporter)

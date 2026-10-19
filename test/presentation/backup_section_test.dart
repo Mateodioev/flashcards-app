@@ -42,13 +42,41 @@ class _MemoryFiles implements BackupFiles {
   }
 }
 
+/// Records what would have been shared, so the UI can be driven without a
+/// platform channel.
+class _MemorySharer implements BackupSharer {
+  String? lastSharedPath;
+  int calls = 0;
+
+  @override
+  Future<void> share(String path) async {
+    calls++;
+    lastSharedPath = path;
+  }
+}
+
+/// A share sheet that never opens, for the fallback-path tests.
+class _ThrowingSharer implements BackupSharer {
+  @override
+  Future<void> share(String path) => Future.error('no share sheet here');
+}
+
+/// A filesystem whose writes always fail.
+class _ThrowingFiles extends _MemoryFiles {
+  @override
+  Future<String> write(Backup backup, {DateTime? now}) =>
+      Future.error('disk full');
+}
+
 void main() {
   late AppDatabase db;
   late _MemoryFiles files;
+  late _MemorySharer sharer;
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
     files = _MemoryFiles();
+    sharer = _MemorySharer();
   });
   tearDown(() => db.close());
 
@@ -57,6 +85,7 @@ void main() {
       overrides: [
         databaseProvider.overrideWithValue(db),
         backupFilesProvider.overrideWithValue(files),
+        backupSharerProvider.overrideWithValue(sharer),
       ],
       child: const MaterialApp(
         home: Scaffold(body: SingleChildScrollView(child: BackupSection())),
@@ -78,17 +107,22 @@ void main() {
   }
 
   group('export', () {
-    testWidgets('writes a file and reports where it went', (tester) async {
+    testWidgets('writes a file and hands it to the share sheet', (
+      tester,
+    ) async {
       await seedCourse('Biology');
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Export a backup'));
+      await tester.tap(find.text('Share a backup'));
       await tester.pumpAndSettle();
 
       expect(files.written, hasLength(1));
-      // A backup the learner cannot find is not a backup, so the path must be
-      // shown rather than written silently.
+      // The written file is what gets shared, so the learner can send it to
+      // WhatsApp, Telegram, Drive, etc. without ever seeing a path.
+      expect(sharer.lastSharedPath, '/fake/documents/backup-0.json');
+      // The path is still shown as a fallback, in case the share sheet was
+      // dismissed or failed.
       expect(
         find.textContaining('/fake/documents/backup-0.json'),
         findsOneWidget,
@@ -100,12 +134,70 @@ void main() {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Export a backup'));
+      await tester.tap(find.text('Share a backup'));
       await tester.pumpAndSettle();
 
       for (final content in files.written.values) {
         expect(content.toLowerCase(), isNot(contains('apikey')));
       }
+    });
+
+    testWidgets('a share failure still reports the written path', (
+      tester,
+    ) async {
+      await seedCourse('Biology');
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            backupFilesProvider.overrideWithValue(files),
+            backupSharerProvider.overrideWithValue(_ThrowingSharer()),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: SingleChildScrollView(child: BackupSection())),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Share a backup'));
+      await tester.pumpAndSettle();
+
+      // Sharing is best-effort: the written file is the real backup, so its
+      // path must still be reported instead of a failure.
+      expect(
+        find.textContaining('/fake/documents/backup-0.json'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Could not write'), findsNothing);
+    });
+
+    testWidgets('a write failure does not open the share sheet', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            backupFilesProvider.overrideWithValue(_ThrowingFiles()),
+            backupSharerProvider.overrideWithValue(sharer),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: SingleChildScrollView(child: BackupSection())),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Share a backup'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Could not write the backup'), findsOneWidget);
+      expect(
+        sharer.calls,
+        0,
+        reason: 'there is nothing to share when the write itself failed',
+      );
     });
   });
 
@@ -118,7 +210,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Export the current state, then restore it back into the same database.
-      await tester.tap(find.text('Export a backup'));
+      await tester.tap(find.text('Share a backup'));
       await tester.pumpAndSettle();
       final path = files.lastPath!;
 
@@ -149,7 +241,7 @@ void main() {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Export a backup'));
+      await tester.tap(find.text('Share a backup'));
       await tester.pumpAndSettle();
       final path = files.lastPath!;
 
@@ -211,7 +303,7 @@ void main() {
       await seedCourse('Chemistry');
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Export a backup'));
+      await tester.tap(find.text('Share a backup'));
       await tester.pumpAndSettle();
 
       final written = files.written.values.single;
