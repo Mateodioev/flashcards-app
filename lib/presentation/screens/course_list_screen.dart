@@ -88,17 +88,46 @@ class CourseListScreen extends ConsumerWidget {
             itemCount: list.length,
             itemBuilder: (context, index) {
               final course = list[index];
-              return ListTile(
-                title: Text(course.name),
-                subtitle: Text(
-                  course.interleaveMode == InterleaveMode.interleaved
-                      ? 'Interleaved practice'
-                      : 'Blocked practice',
+              return Dismissible(
+                key: ValueKey('course-${course.id}'),
+                background: _SwipeBackground(
+                  alignment: Alignment.centerLeft,
+                  color: Theme.of(context).colorScheme.error,
+                  icon: Icons.delete_outline,
                 ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ThemeListScreen(course: course),
+                secondaryBackground: _SwipeBackground(
+                  alignment: Alignment.centerRight,
+                  color: Theme.of(context).colorScheme.primary,
+                  icon: Icons.edit_outlined,
+                ),
+                // Always returns false: the provider refetch removes the
+                // item, so the Dismissible never owns the removal — an async
+                // onDismissed would leave a dismissed widget in the tree.
+                confirmDismiss: (direction) async {
+                  if (direction == DismissDirection.endToStart) {
+                    await _renameCourse(context, ref, course);
+                    return false;
+                  }
+                  if (await _confirmDeleteCourse(context, ref, course)) {
+                    await ref
+                        .read(courseRepositoryProvider)
+                        .delete(course.id);
+                    ref.invalidate(coursesProvider);
+                  }
+                  return false;
+                },
+                child: ListTile(
+                  title: Text(course.name),
+                  subtitle: Text(
+                    course.interleaveMode == InterleaveMode.interleaved
+                        ? 'Interleaved practice'
+                        : 'Blocked practice',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ThemeListScreen(course: course),
+                    ),
                   ),
                 ),
               );
@@ -160,15 +189,41 @@ class ThemeListScreen extends ConsumerWidget {
             itemCount: list.length,
             itemBuilder: (context, index) {
               final item = list[index];
-              return ListTile(
-                title: Text(item.name),
-                subtitle: item.description == null
-                    ? null
-                    : CardContent(item.description!),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => CardListScreen(theme: item),
+              return Dismissible(
+                key: ValueKey('theme-${item.id}'),
+                background: _SwipeBackground(
+                  alignment: Alignment.centerLeft,
+                  color: Theme.of(context).colorScheme.error,
+                  icon: Icons.delete_outline,
+                ),
+                secondaryBackground: _SwipeBackground(
+                  alignment: Alignment.centerRight,
+                  color: Theme.of(context).colorScheme.primary,
+                  icon: Icons.edit_outlined,
+                ),
+                confirmDismiss: (direction) async {
+                  if (direction == DismissDirection.endToStart) {
+                    await _renameTheme(context, ref, item);
+                    return false;
+                  }
+                  if (await _confirmDeleteTheme(context, ref, item)) {
+                    await ref
+                        .read(cardRepositoryProvider)
+                        .deleteTheme(item.id);
+                    ref.invalidate(themesProvider(course.id));
+                  }
+                  return false;
+                },
+                child: ListTile(
+                  title: Text(item.name),
+                  subtitle: item.description == null
+                      ? null
+                      : CardContent(item.description!),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => CardListScreen(theme: item),
+                    ),
                   ),
                 ),
               );
@@ -282,18 +337,223 @@ Future<void> _createTheme(
   ref.invalidate(themesProvider(course.id));
 }
 
+/// Swipe-left on a course: rename it. Returns nothing because the item must
+/// never be dismissed for a rename — `confirmDismiss` always reports false.
+Future<void> _renameCourse(
+  BuildContext context,
+  WidgetRef ref,
+  Course course,
+) async {
+  final name = await showDialog<String>(
+    context: context,
+    builder: (_) => _NameDialog(
+      title: 'Rename course',
+      label: 'Course name',
+      initialValue: course.name,
+      confirmText: 'Save',
+    ),
+  );
+  final trimmed = name?.trim();
+  if (trimmed == null || trimmed.isEmpty || trimmed == course.name) return;
+
+  await ref
+      .read(courseRepositoryProvider)
+      .update(
+        Course(
+          id: course.id,
+          name: trimmed,
+          createdAt: course.createdAt,
+          newCardsPerDay: course.newCardsPerDay,
+          interleaveMode: course.interleaveMode,
+          archived: course.archived,
+        ),
+      );
+  ref.invalidate(coursesProvider);
+}
+
+/// Swipe-left on a theme: rename it. Same never-dismiss contract as
+/// [_renameCourse].
+Future<void> _renameTheme(
+  BuildContext context,
+  WidgetRef ref,
+  domain.Theme theme,
+) async {
+  final name = await showDialog<String>(
+    context: context,
+    builder: (_) => _NameDialog(
+      title: 'Rename theme',
+      label: 'Theme name',
+      initialValue: theme.name,
+      confirmText: 'Save',
+    ),
+  );
+  final trimmed = name?.trim();
+  if (trimmed == null || trimmed.isEmpty || trimmed == theme.name) return;
+
+  await ref
+      .read(cardRepositoryProvider)
+      .updateTheme(
+        domain.Theme(
+          id: theme.id,
+          courseId: theme.courseId,
+          name: trimmed,
+          description: theme.description,
+          createdAt: theme.createdAt,
+        ),
+      );
+  ref.invalidate(themesProvider(theme.courseId));
+}
+
+/// Deletion is irreversible and cascades (course -> themes -> cards ->
+/// images, schedule state, review logs and reminder subscriptions), so the
+/// first dialog spells out the impact and a second one stands guard.
+Future<bool> _confirmDeleteCourse(
+  BuildContext context,
+  WidgetRef ref,
+  Course course,
+) async {
+  final themes = await ref
+      .read(cardRepositoryProvider)
+      .findThemesByCourse(course.id);
+  final scoped = await ref
+      .read(cardRepositoryProvider)
+      .findCardsWithContext(courseId: course.id);
+  if (!context.mounted) return false;
+
+  final first = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Delete course?'),
+      content: Text(
+        'Deleting "${course.name}" will also delete '
+        '${_count(themes.length, 'theme')} and '
+        '${_count(scoped.length, 'card')}.',
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+  if (first != true || !context.mounted) return false;
+
+  return await _finalDeleteConfirmation(context);
+}
+
+Future<bool> _confirmDeleteTheme(
+  BuildContext context,
+  WidgetRef ref,
+  domain.Theme theme,
+) async {
+  final scoped = await ref
+      .read(cardRepositoryProvider)
+      .findCardsWithContext(themeId: theme.id);
+  if (!context.mounted) return false;
+
+  final first = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Delete theme?'),
+      content: Text(
+        'Deleting "${theme.name}" will also delete '
+        '${_count(scoped.length, 'card')}.',
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+  if (first != true || !context.mounted) return false;
+
+  return await _finalDeleteConfirmation(context);
+}
+
+/// The second confirmation, shared by course and theme deletion.
+Future<bool> _finalDeleteConfirmation(BuildContext context) async {
+  final second = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Really delete?'),
+      content: const Text('This cannot be undone.'),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Delete permanently'),
+        ),
+      ],
+    ),
+  );
+  return second ?? false;
+}
+
+String _count(int n, String noun) => '$n $noun${n == 1 ? '' : 's'}';
+
+/// The panel revealed under a dismissing item: red delete on the left
+/// (swipe right), primary edit on the right (swipe left).
+class _SwipeBackground extends StatelessWidget {
+  const new({
+    required this.alignment,
+    required this.color,
+    required this.icon,
+  });
+
+  final Alignment alignment;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: color,
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Icon(icon, color: Colors.white),
+    );
+  }
+}
+
 class _NameDialog extends StatefulWidget {
-  const new({required this.title, required this.label});
+  const new({
+    required this.title,
+    required this.label,
+    this.initialValue,
+    this.confirmText = 'Create',
+  });
 
   final String title;
   final String label;
+  final String? initialValue;
+  final String confirmText;
 
   @override
   State<_NameDialog> createState() => _NameDialogState();
 }
 
 class _NameDialogState extends State<_NameDialog> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
 
   @override
   void dispose() {
@@ -318,7 +578,7 @@ class _NameDialogState extends State<_NameDialog> {
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('Create'),
+          child: Text(widget.confirmText),
         ),
       ],
     );

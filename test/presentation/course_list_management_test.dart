@@ -1,0 +1,244 @@
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
+import 'package:flashcards2/data/database.dart';
+import 'package:flashcards2/domain/enums.dart';
+import 'package:flashcards2/presentation/providers.dart';
+import 'package:flashcards2/presentation/screens/course_list_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// Swipe-to-manage flow for courses and themes, against the real Drift stack:
+/// swipe left renames, swipe right deletes behind two confirmations.
+void main() {
+  late AppDatabase db;
+
+  setUp(() {
+    db = AppDatabase(NativeDatabase.memory());
+  });
+
+  tearDown(() async {
+    await db.close();
+  });
+
+  Widget app() {
+    return ProviderScope(
+      overrides: [databaseProvider.overrideWithValue(db)],
+      child: const MaterialApp(home: CourseListScreen()),
+    );
+  }
+
+  Future<int> seedCourse(String name) {
+    return db
+        .into(db.courses)
+        .insert(
+          CoursesCompanion.insert(
+            name: name,
+            newCardsPerDay: const Value(10),
+            interleaveMode: const Value(InterleaveMode.blocked),
+          ),
+        );
+  }
+
+  Future<int> seedTheme(int courseId, String name) {
+    return db
+        .into(db.themes)
+        .insert(ThemesCompanion.insert(courseId: courseId, name: name));
+  }
+
+  testWidgets('swiping left on a course renames it and persists the change', (
+    tester,
+  ) async {
+    await seedCourse('Biology');
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.fling(find.text('Biology'), const Offset(-400, 0), 1000);
+    await tester.pumpAndSettle();
+
+    // The rename dialog comes up prefilled with the current name.
+    expect(find.text('Rename course'), findsOneWidget);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller?.text, 'Biology');
+
+    await tester.enterText(find.byType(TextField), 'Botany');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Botany'), findsOneWidget);
+    expect(find.text('Biology'), findsNothing);
+    expect((await db.select(db.courses).get()).single.name, 'Botany');
+  });
+
+  testWidgets('renaming keeps the rest of the course settings intact', (
+    tester,
+  ) async {
+    final id = await db
+        .into(db.courses)
+        .insert(
+          CoursesCompanion.insert(
+            name: 'Chemistry',
+            newCardsPerDay: const Value(7),
+            interleaveMode: const Value(InterleaveMode.interleaved),
+          ),
+        );
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.fling(find.text('Chemistry'), const Offset(-400, 0), 1000);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Organic chemistry');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final row = await (db.select(
+      db.courses,
+    )..where((t) => t.id.equals(id))).getSingle();
+    expect(row.name, 'Organic chemistry');
+    expect(row.newCardsPerDay, 7);
+    expect(row.interleaveMode, InterleaveMode.interleaved);
+  });
+
+  testWidgets('cancelling the rename dialog leaves the course unchanged', (
+    tester,
+  ) async {
+    await seedCourse('Biology');
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.fling(find.text('Biology'), const Offset(-400, 0), 1000);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Biology'), findsOneWidget);
+    expect((await db.select(db.courses).get()).single.name, 'Biology');
+  });
+
+  testWidgets(
+    'swiping right deletes a course only after both confirmations and '
+    'cascades to its themes and cards',
+    (tester) async {
+      final courseId = await seedCourse('Biology');
+      final themeId = await seedTheme(courseId, 'Cells');
+      await db
+          .into(db.cards)
+          .insert(
+            CardsCompanion.insert(themeId: themeId, front: 'Q', back: 'A'),
+          );
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      await tester.fling(find.text('Biology'), const Offset(400, 0), 1000);
+      await tester.pumpAndSettle();
+
+      // First confirmation explains the cascade impact.
+      expect(find.textContaining('Delete course?'), findsOneWidget);
+      expect(find.textContaining('1 theme'), findsOneWidget);
+      expect(find.textContaining('1 card'), findsOneWidget);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      // Second confirmation.
+      expect(find.text('Really delete?'), findsOneWidget);
+      await tester.tap(find.text('Delete permanently'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Biology'), findsNothing);
+      expect(await db.select(db.courses).get(), isEmpty);
+      expect(await db.select(db.themes).get(), isEmpty);
+      expect(await db.select(db.cards).get(), isEmpty);
+    },
+  );
+
+  testWidgets('bailing on the first delete confirmation keeps the course', (
+    tester,
+  ) async {
+    await seedCourse('Biology');
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.fling(find.text('Biology'), const Offset(400, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Delete course?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Biology'), findsOneWidget);
+    expect(await db.select(db.courses).get(), hasLength(1));
+  });
+
+  testWidgets('bailing on the second delete confirmation keeps the course', (
+    tester,
+  ) async {
+    await seedCourse('Biology');
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.fling(find.text('Biology'), const Offset(400, 0), 1000);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Really delete?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Biology'), findsOneWidget);
+    expect(await db.select(db.courses).get(), hasLength(1));
+  });
+
+  testWidgets('swiping left on a theme renames it and persists the change', (
+    tester,
+  ) async {
+    final courseId = await seedCourse('Biology');
+    await seedTheme(courseId, 'Cells');
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Biology'));
+    await tester.pumpAndSettle();
+
+    await tester.fling(find.text('Cells'), const Offset(-400, 0), 1000);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rename theme'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Cell biology');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cell biology'), findsOneWidget);
+    expect((await db.select(db.themes).get()).single.name, 'Cell biology');
+  });
+
+  testWidgets('swiping right deletes a theme only after both confirmations', (
+    tester,
+  ) async {
+    final courseId = await seedCourse('Biology');
+    final themeId = await seedTheme(courseId, 'Cells');
+    await db
+        .into(db.cards)
+        .insert(CardsCompanion.insert(themeId: themeId, front: 'Q', back: 'A'));
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Biology'));
+    await tester.pumpAndSettle();
+
+    await tester.fling(find.text('Cells'), const Offset(400, 0), 1000);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Delete theme?'), findsOneWidget);
+    expect(find.textContaining('1 card'), findsOneWidget);
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Really delete?'), findsOneWidget);
+    await tester.tap(find.text('Delete permanently'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cells'), findsNothing);
+    expect(await db.select(db.themes).get(), isEmpty);
+    expect(await db.select(db.cards).get(), isEmpty);
+  });
+}
