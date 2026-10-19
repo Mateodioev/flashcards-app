@@ -100,6 +100,52 @@ final class BackupSharerProvider
 
 String _$backupSharerHash() => r'7b60ceed8780e492828baa71199e93de384ac442';
 
+/// The picker bridge, overridden in tests so no platform channel is needed.
+
+@ProviderFor(backupPicker)
+final backupPickerProvider = BackupPickerProvider._();
+
+/// The picker bridge, overridden in tests so no platform channel is needed.
+
+final class BackupPickerProvider
+    extends $FunctionalProvider<BackupPicker, BackupPicker, BackupPicker>
+    with $Provider<BackupPicker> {
+  /// The picker bridge, overridden in tests so no platform channel is needed.
+  BackupPickerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'backupPickerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$backupPickerHash();
+
+  @$internal
+  @override
+  $ProviderElement<BackupPicker> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  BackupPicker create(Ref ref) {
+    return backupPicker(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BackupPicker value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BackupPicker>(value),
+    );
+  }
+}
+
+String _$backupPickerHash() => r'6b4dcae13a5875a11a25e5b6b044663ede7d6638';
+
 /// The exporter, wired to the real repositories.
 
 @ProviderFor(backupExporter)

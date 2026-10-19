@@ -121,8 +121,22 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
   }
 
   Future<void> _chooseAndImport() async {
-    final path = await _askForPath();
-    if (path == null || path.isEmpty || !mounted) return;
+    // The platform file picker shows every JSON file on the device, including
+    // backups received through WhatsApp or Telegram. A null path means the
+    // learner backed out, which is not an error and reports nothing. A
+    // thrown platform error must surface though: a silent failure would
+    // leave them tapping with no visible result at all.
+    final String? path;
+    try {
+      path = await ref.read(backupPickerProvider).pick();
+    } on Object catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Could not open the file picker.\n\n$e';
+      });
+      return;
+    }
+    if (path == null || !mounted) return;
 
     setState(() {
       _reading = true;
@@ -186,23 +200,6 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     }
   }
 
-  /// Asks for a path, since the app has no file picker on Android without an
-  /// extra plugin, and exports already print the path they wrote.
-  Future<String?> _askForPath() {
-    return ref.read(backupFilesProvider).defaultDirectory().then((directory) {
-      if (!mounted) return null;
-
-      // The dialog owns its own controller. Disposing one from the caller after
-      // `showDialog` returns is too early: the route is still tearing down and
-      // its TextField still depends on the controller, which throws
-      // `_dependents.isEmpty` in the framework.
-      return showDialog<String>(
-        context: context,
-        builder: (context) => _PathPrompt(initialDirectory: directory),
-      );
-    });
-  }
-
   Future<bool?> _confirm(Backup backup) {
     return showDialog<bool>(
       context: context,
@@ -256,78 +253,6 @@ class _Note extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: SelectableText(message, style: TextStyle(color: foreground)),
-    );
-  }
-}
-
-/// The path prompt, as a stateful widget so it can own its controller.
-///
-/// A separate widget rather than an inline closure because the controller's
-/// lifetime must match the dialog's: it has to survive until the route is
-/// fully disposed, which a caller holding it across `await showDialog` cannot
-/// arrange.
-class _PathPrompt extends StatefulWidget {
-  const new({required this.initialDirectory});
-
-  final String initialDirectory;
-
-  @override
-  State<_PathPrompt> createState() => _PathPromptState();
-}
-
-class _PathPromptState extends State<_PathPrompt> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: '${widget.initialDirectory}/');
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Restore from a file'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Text(
-            'Enter the full path of the backup file. Every backup this app '
-            'writes lands in this folder:',
-          ),
-          const SizedBox(height: 12),
-          SelectableText(
-            widget.initialDirectory,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _controller,
-            autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Backup file path',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ],
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: const Text('Open'),
-        ),
-      ],
     );
   }
 }

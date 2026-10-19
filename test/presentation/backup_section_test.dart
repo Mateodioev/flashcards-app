@@ -22,9 +22,6 @@ class _MemoryFiles implements BackupFiles {
   String? lastPath;
 
   @override
-  Future<String> defaultDirectory() async => '/fake/documents';
-
-  @override
   Future<String> write(Backup backup, {DateTime? now}) async {
     final path = '/fake/documents/backup-${written.length}.json';
     written[path] = backup.encode();
@@ -61,6 +58,12 @@ class _ThrowingSharer implements BackupSharer {
   Future<void> share(String path) => Future.error('no share sheet here');
 }
 
+/// A picker whose platform channel is broken.
+class _ThrowingPicker extends _MemoryPicker {
+  @override
+  Future<String?> pick() => Future.error(StateError('platform channel gone'));
+}
+
 /// A filesystem whose writes always fail.
 class _ThrowingFiles extends _MemoryFiles {
   @override
@@ -68,15 +71,29 @@ class _ThrowingFiles extends _MemoryFiles {
       Future.error('disk full');
 }
 
+/// Returns a pre-seeded path, as if the learner had picked that file.
+class _MemoryPicker implements BackupPicker {
+  String? pathToReturn;
+  int calls = 0;
+
+  @override
+  Future<String?> pick() async {
+    calls++;
+    return pathToReturn;
+  }
+}
+
 void main() {
   late AppDatabase db;
   late _MemoryFiles files;
   late _MemorySharer sharer;
+  late _MemoryPicker picker;
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
     files = _MemoryFiles();
     sharer = _MemorySharer();
+    picker = _MemoryPicker();
   });
   tearDown(() => db.close());
 
@@ -86,6 +103,7 @@ void main() {
         databaseProvider.overrideWithValue(db),
         backupFilesProvider.overrideWithValue(files),
         backupSharerProvider.overrideWithValue(sharer),
+        backupPickerProvider.overrideWithValue(picker),
       ],
       child: const MaterialApp(
         home: Scaffold(body: SingleChildScrollView(child: BackupSection())),
@@ -212,12 +230,9 @@ void main() {
       // Export the current state, then restore it back into the same database.
       await tester.tap(find.text('Share a backup'));
       await tester.pumpAndSettle();
-      final path = files.lastPath!;
+      picker.pathToReturn = files.lastPath;
 
       await tester.tap(find.text('Restore from a backup'));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, path);
-      await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
       // The confirmation must be shown before anything is written.
@@ -243,12 +258,9 @@ void main() {
 
       await tester.tap(find.text('Share a backup'));
       await tester.pumpAndSettle();
-      final path = files.lastPath!;
+      picker.pathToReturn = files.lastPath;
 
       await tester.tap(find.text('Restore from a backup'));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, path);
-      await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
@@ -257,16 +269,11 @@ void main() {
     });
 
     testWidgets('a missing file reports a readable error', (tester) async {
+      picker.pathToReturn = '/fake/documents/nope.json';
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Restore from a backup'));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byType(TextField).last,
-        '/fake/documents/nope.json',
-      );
-      await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('no file at'), findsOneWidget);
@@ -282,17 +289,58 @@ void main() {
     ) async {
       await seedCourse('Original');
       files.written['/fake/broken.json'] = 'not a backup at all';
+      picker.pathToReturn = '/fake/broken.json';
 
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Restore from a backup'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, '/fake/broken.json');
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
 
       expect(find.textContaining('not valid JSON'), findsOneWidget);
+      expect(await DriftCourseRepository(db).findAll(), hasLength(1));
+    });
+
+    testWidgets('a picker failure reports a readable error', (tester) async {
+      await seedCourse('Original');
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            backupFilesProvider.overrideWithValue(files),
+            backupSharerProvider.overrideWithValue(sharer),
+            backupPickerProvider.overrideWithValue(_ThrowingPicker()),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: SingleChildScrollView(child: BackupSection())),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Restore from a backup'));
+      await tester.pumpAndSettle();
+
+      // A silent failure would leave the learner tapping with no visible
+      // result at all.
+      expect(find.textContaining('Could not open'), findsOneWidget);
+      expect(await DriftCourseRepository(db).findAll(), hasLength(1));
+    });
+
+    testWidgets('cancelling the picker changes nothing and shows nothing', (
+      tester,
+    ) async {
+      await seedCourse('Original');
+      // pathToReturn stays null: the learner backed out of the picker.
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Restore from a backup'));
+      await tester.pumpAndSettle();
+
+      expect(picker.calls, 1);
+      expect(find.text('Restore this backup?'), findsNothing);
+      expect(find.byType(SelectableText), findsNothing);
       expect(await DriftCourseRepository(db).findAll(), hasLength(1));
     });
   });

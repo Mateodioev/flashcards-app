@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flashcards2/domain/backup/backup.dart';
 import 'package:flashcards2/domain/backup/backup_io.dart';
 import 'package:flashcards2/presentation/providers.dart';
@@ -21,9 +22,6 @@ abstract interface class BackupFiles {
 
   /// Reads and parses the backup at [path].
   Future<Backup> read(String path);
-
-  /// Where backups are written, shown to the learner so they can find the file.
-  Future<String> defaultDirectory();
 }
 
 class FileBackupFiles implements BackupFiles {
@@ -32,12 +30,6 @@ class FileBackupFiles implements BackupFiles {
   /// Documents rather than cache: a cache directory can be cleared by the
   /// system at any time, and a backup the OS deletes when storage runs low is
   /// worse than no backup, because the learner believes they have one.
-  @override
-  Future<String> defaultDirectory() async {
-    final directory = await getApplicationDocumentsDirectory();
-    return directory.path;
-  }
-
   @override
   Future<String> write(Backup backup, {DateTime? now}) async {
     final directory = await getApplicationDocumentsDirectory();
@@ -93,6 +85,34 @@ class SharePlusBackupSharer implements BackupSharer {
 /// The share bridge, overridden in tests so no platform channel is needed.
 @Riverpod(keepAlive: true)
 BackupSharer backupSharer(Ref ref) => SharePlusBackupSharer();
+
+/// Asks the learner for the backup file to restore from.
+///
+/// An interface like [BackupSharer]: the real picker needs a platform
+/// channel, so widget tests override this with a fake.
+abstract interface class BackupPicker {
+  /// Opens the file picker and returns the chosen path, or null when the
+  /// learner cancels.
+  Future<String?> pick();
+}
+
+class FilePickerBackupPicker implements BackupPicker {
+  @override
+  Future<String?> pick() async {
+    // Restricting to .json guides the learner to an actual backup; the
+    // format check on read is still the real validation.
+    final file = await FilePicker.pickFile(
+      dialogTitle: 'Choose a backup file',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    return file?.path;
+  }
+}
+
+/// The picker bridge, overridden in tests so no platform channel is needed.
+@Riverpod(keepAlive: true)
+BackupPicker backupPicker(Ref ref) => FilePickerBackupPicker();
 
 /// The exporter, wired to the real repositories.
 @Riverpod(keepAlive: true)
