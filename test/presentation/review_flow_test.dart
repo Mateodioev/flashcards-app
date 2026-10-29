@@ -148,6 +148,30 @@ void main() {
     expect(find.text('front 0'), findsNothing);
   });
 
+  testWidgets('rating buttons preview their next interval', (tester) async {
+    final (themeId, ids) = await seedCards(1);
+    await tester.pumpWidget(
+      app(
+        items: [
+          SessionItem(
+            entry: DueEntrySamples.of(ids.first, themeId),
+            isNew: true,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Show answer'));
+    await tester.pumpAndSettle();
+
+    // New card, single 1m learning step: three buttons stay sub-day,
+    // Easy graduates to a day-scale interval. The learner sees the
+    // consequence before choosing.
+    expect(find.text('1m'), findsNWidgets(3));
+    expect(find.textContaining(RegExp(r'\dd')), findsOneWidget);
+  });
+
   testWidgets('the barrier disables reveal until an attempt exists', (
     tester,
   ) async {

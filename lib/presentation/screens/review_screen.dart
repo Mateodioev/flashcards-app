@@ -46,6 +46,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   DateTime? _shownAt;
   final _ratings = <Rating>[];
 
+  /// The next interval each rating would produce for the current card, shown
+  /// under the buttons after reveal so the learner chooses with the
+  /// consequence in view.
+  Map<Rating, String>? _previews;
+
   SessionItem get _current => widget.items[_index];
 
   bool get _isLast => _index == widget.items.length - 1;
@@ -82,22 +87,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
     // Load the card's current schedule, or start one from scratch.
     final existing = await repository.findScheduleState(_current.cardId);
-    final card = existing == null
-        ? const CardSchedule.newCard()
-        : CardSchedule(
-            state: existing.state,
-            step: existing.step,
-            reps: existing.reps,
-            lapses: existing.lapses,
-            memory: existing.stability == 0 && existing.difficulty == 0
-                ? null
-                : MemoryState(
-                    stability: existing.stability,
-                    difficulty: existing.difficulty,
-                  ),
-            due: existing.due,
-            lastReview: existing.lastReview,
-          );
+    final card = _scheduleFromState(existing);
 
     final outcome = widget.scheduler.review(
       card: card,
@@ -133,10 +123,19 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         _index++;
         _revealed = false;
         _attempted = false;
+        _previews = null;
         _recall.clear();
         _shownAt = DateTime.now();
       }
     });
+  }
+
+  /// Sub-day steps read as minutes/hours, graduated cards as days; the exact
+  /// FSRS instant stays on the schedule, only the display is coarse.
+  String _formatInterval(Duration delta) {
+    if (delta.inMinutes < 60) return '${delta.inMinutes}m';
+    if (delta.inHours < 24) return '${delta.inHours}h';
+    return '${delta.inDays}d';
   }
 
   domain.ScheduleState _toState(int cardId, CardSchedule schedule) {
@@ -222,6 +221,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               _BottomBar(
                 revealed: _revealed,
                 canReveal: _canReveal,
+                previews: _previews,
                 onReveal: _reveal,
                 onRate: _rate,
               ),
@@ -232,10 +232,59 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
-  void _reveal() {
+  /// The single place a persisted schedule row becomes a [CardSchedule].
+  CardSchedule _scheduleFromState(domain.ScheduleState? existing) {
+    if (existing == null) return const CardSchedule.newCard();
+    return CardSchedule(
+      state: existing.state,
+      step: existing.step,
+      reps: existing.reps,
+      lapses: existing.lapses,
+      memory: existing.stability == 0 && existing.difficulty == 0
+          ? null
+          : MemoryState(
+              stability: existing.stability,
+              difficulty: existing.difficulty,
+            ),
+      due: existing.due,
+      lastReview: existing.lastReview,
+    );
+  }
+
+  /// Anki teaches calibration by showing what each grade buys; the same
+  /// honesty this app asks for in grading deserves to be visible in the
+  /// buttons. Previews are advisory: a load or compute failure drops them
+  /// silently and grading still works.
+  Future<Map<Rating, String>?> _computePreviews() async {
+    final existing = await ref
+        .read(cardRepositoryProvider)
+        .findScheduleState(_current.cardId);
+    final card = _scheduleFromState(existing);
+    final now = DateTime.now();
+    return <Rating, String>{
+      for (final rating in Rating.values)
+        rating: _formatInterval(
+          widget.scheduler
+              .review(card: card, rating: rating, now: now)
+              .schedule
+              .due!
+              .difference(now),
+        ),
+    };
+  }
+
+  Future<void> _reveal() async {
+    Map<Rating, String>? previews;
+    try {
+      previews = await _computePreviews();
+    } on Object {
+      previews = null;
+    }
+    if (!mounted) return;
     setState(() {
       _revealed = true;
       _attempted = _recall.text.trim().isNotEmpty || _attemptedAloud;
+      _previews = previews;
     });
   }
 
@@ -389,12 +438,14 @@ class _BottomBar extends StatelessWidget {
   const new({
     required this.revealed,
     required this.canReveal,
+    required this.previews,
     required this.onReveal,
     required this.onRate,
   });
 
   final bool revealed;
   final bool canReveal;
+  final Map<Rating, String>? previews;
   final VoidCallback onReveal;
   final ValueChanged<Rating> onRate;
 
@@ -412,6 +463,7 @@ class _BottomBar extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 2),
                         child: _RatingButton(
                           rating: rating,
+                          preview: previews?[rating],
                           onPressed: () => onRate(rating),
                         ),
                       ),
@@ -431,10 +483,14 @@ class _BottomBar extends StatelessWidget {
 }
 
 class _RatingButton extends StatelessWidget {
-  const new({required this.rating, required this.onPressed});
+  const new({required this.rating, required this.onPressed, this.preview});
 
   final Rating rating;
   final VoidCallback onPressed;
+
+  /// The next interval this rating would schedule, or null before/without
+  /// the preview load (the button degrades to label-only).
+  final String? preview;
 
   static const _labels = <Rating, String>{
     Rating.again: 'Again',
@@ -447,7 +503,14 @@ class _RatingButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return OutlinedButton(
       onPressed: onPressed,
-      child: Text(_labels[rating]!, textAlign: TextAlign.center),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(_labels[rating]!, textAlign: TextAlign.center),
+          if (preview != null)
+            Text(preview!, style: Theme.of(context).textTheme.labelSmall),
+        ],
+      ),
     );
   }
 }

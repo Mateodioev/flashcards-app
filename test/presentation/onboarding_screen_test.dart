@@ -127,6 +127,16 @@ void main() {
     expect(check.onPressed, isNotNull);
   });
 
+  testWidgets('the keypad erase button is labelled for assistive tech', (
+    tester,
+  ) async {
+    await beginSession(tester, 7);
+    await tester.tap(find.text('100%'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Erase the last digit'), findsOneWidget);
+  });
+
   testWidgets('a perfect run measures the span and persists it', (
     tester,
   ) async {

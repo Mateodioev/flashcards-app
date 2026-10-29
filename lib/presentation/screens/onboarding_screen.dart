@@ -343,6 +343,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             IconButton.filledTonal(
               onPressed: _backspace,
+              tooltip: 'Erase the last digit',
               icon: const Icon(Icons.backspace_outlined),
             ),
             ],

@@ -242,6 +242,47 @@ void main() {
     expect(await db.select(db.cards).get(), isEmpty);
   });
 
+  group('accessibility hints', () {
+    testWidgets('a course row tells screen readers about its swipe actions', (
+      tester,
+    ) async {
+      await seedCourse('Biology');
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      // A MaterialApp carries a dozen Semantics widgets above the row;
+      // filter to the ones that declare a hint and expect exactly the row's.
+      final hints = tester
+          .widgetList<Semantics>(find.widgetWithText(Semantics, 'Biology'))
+          .map((s) => s.properties.hint)
+          .nonNulls;
+      expect(
+        hints.where((h) => h.contains('rename')),
+        hasLength(1),
+        reason: 'a screen reader cannot perform a swipe; the row must say '
+            'what the gestures do',
+      );
+    });
+
+    testWidgets('a theme row tells screen readers about its swipe actions', (
+      tester,
+    ) async {
+      final courseId = await seedCourse('Biology');
+      await seedTheme(courseId, 'Cells');
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Biology'));
+      await tester.pumpAndSettle();
+
+      final hints = tester
+          .widgetList<Semantics>(find.widgetWithText(Semantics, 'Cells'))
+          .map((s) => s.properties.hint)
+          .nonNulls;
+      expect(hints.where((h) => h.contains('rename')), hasLength(1));
+    });
+  });
+
   group('create/rename dialog validation', () {
     testWidgets('Create stays disabled until a non-blank name is typed', (
       tester,

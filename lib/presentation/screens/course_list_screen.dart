@@ -122,17 +122,23 @@ class CourseListScreen extends ConsumerWidget {
                   }
                   return false;
                 },
-                child: ListTile(
-                  title: Text(course.name),
-                  subtitle: Text(
-                    course.interleaveMode == InterleaveMode.interleaved
-                        ? 'Interleaved practice'
-                        : 'Blocked practice',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ThemeListScreen(course: course),
+                // A screen reader cannot perform a swipe, so the row must
+                // say what the two gestures do.
+                child: Semantics(
+                  hint: 'Opens the course. Swipe left to rename; '
+                      'swipe right to delete.',
+                  child: ListTile(
+                    title: Text(course.name),
+                    subtitle: Text(
+                      course.interleaveMode == InterleaveMode.interleaved
+                          ? 'Interleaved practice'
+                          : 'Blocked practice',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ThemeListScreen(course: course),
+                      ),
                     ),
                   ),
                 ),
@@ -222,15 +228,20 @@ class ThemeListScreen extends ConsumerWidget {
                   }
                   return false;
                 },
-                child: ListTile(
-                  title: Text(item.name),
-                  subtitle: item.description == null
-                      ? null
-                      : CardContent(item.description!),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => CardListScreen(theme: item),
+                // Same disclosure as the course rows above.
+                child: Semantics(
+                  hint: 'Opens the theme. Swipe left to rename; '
+                      'swipe right to delete.',
+                  child: ListTile(
+                    title: Text(item.name),
+                    subtitle: item.description == null
+                        ? null
+                        : CardContent(item.description!),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => CardListScreen(theme: item),
+                      ),
                     ),
                   ),
                 ),
