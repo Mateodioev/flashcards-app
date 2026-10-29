@@ -111,11 +111,11 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
             '${backup.cardCount == 1 ? 'card' : 'cards'}. '
             'The file is also saved at:\n$path';
       });
-    } on Object catch (e) {
+    } on Object {
       if (!mounted) return;
       setState(() {
         _writing = false;
-        _error = 'Could not write the backup.\n\n$e';
+        _error = 'Could not write the backup.';
       });
     }
   }
@@ -129,10 +129,10 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
     final String? path;
     try {
       path = await ref.read(backupPickerProvider).pick();
-    } on Object catch (e) {
+    } on Object {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not open the file picker.\n\n$e';
+        _error = 'Could not open the file picker.';
       });
       return;
     }
@@ -156,11 +156,11 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
         _error = '${e.message}\n\nNothing was imported.';
       });
       return;
-    } on Object catch (e) {
+    } on Object {
       if (!mounted) return;
       setState(() {
         _reading = false;
-        _error = 'Could not read that file.\n\n$e';
+        _error = 'Could not read that file.';
       });
       return;
     }
@@ -187,7 +187,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
         _writing = false;
         _message = 'Restored $summary.';
       });
-    } on Object catch (e) {
+    } on Object {
       if (!mounted) return;
       setState(() {
         _writing = false;
@@ -195,7 +195,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
         // wrote. Claiming otherwise would be worse than the limitation.
         _error =
             'The restore stopped part-way through. Anything it added '
-            'before stopping is still present.\n\n$e';
+            'before stopping is still present.';
       });
     }
   }

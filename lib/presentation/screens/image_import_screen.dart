@@ -69,7 +69,7 @@ class _ImageImportScreenState extends ConsumerState<ImageImportScreen> {
     return courses.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) =>
-          Center(child: Text('Could not load courses: $error')),
+          const Center(child: Text('Could not load courses.')),
       data: (list) {
         if (list.isEmpty) {
           return const Padding(
@@ -113,7 +113,8 @@ class _ImageImportScreenState extends ConsumerState<ImageImportScreen> {
 
     return themes.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Could not load themes: $error')),
+      error: (error, _) =>
+          const Center(child: Text('Could not load themes.')),
       data: (list) {
         if (list.isEmpty) {
           return const Padding(
@@ -262,7 +263,10 @@ class _ImageImportScreenState extends ConsumerState<ImageImportScreen> {
 
     if (!mounted) return;
     ref.invalidate(cardsProvider(_pendingTheme.id));
-    Navigator.of(context).pop(approved.length);
+    // The caller announces the save, so it needs the count and the theme.
+    Navigator.of(context).pop(
+      (count: approved.length, theme: _pendingTheme.name),
+    );
   }
 }
 

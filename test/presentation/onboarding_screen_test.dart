@@ -88,6 +88,45 @@ void main() {
     expect(row.forcedGenerationBarrier, isFalse);
   });
 
+  testWidgets('the trial step orients the learner with a round counter', (
+    tester,
+  ) async {
+    await beginSession(tester, 7);
+
+    expect(
+      find.text('Round 1'),
+      findsOneWidget,
+      reason: 'an adaptive game has no fixed total, but the learner must '
+          'still know where they are',
+    );
+  });
+
+  testWidgets('an incomplete entry says why Check is off', (tester) async {
+    final reference = MemorySpanSession(seed: 7);
+    await beginSession(tester, 7);
+
+    await tester.tap(find.text('100%'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Check turns on'),
+      findsOneWidget,
+      reason: 'a disabled Check with no explanation reads as broken',
+    );
+
+    final trial = reference.current;
+    for (final digit in trial.digits) {
+      await tester.tap(find.text('$digit'));
+      await tester.pump();
+    }
+
+    expect(find.textContaining('Check turns on'), findsNothing);
+    final check = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Check'),
+    );
+    expect(check.onPressed, isNotNull);
+  });
+
   testWidgets('a perfect run measures the span and persists it', (
     tester,
   ) async {

@@ -1,3 +1,5 @@
+import 'package:drift/native.dart';
+import 'package:flashcards2/data/database.dart';
 import 'package:flashcards2/domain/entities/course.dart';
 import 'package:flashcards2/domain/entities/theme.dart' as domain;
 import 'package:flashcards2/domain/enums.dart';
@@ -5,8 +7,10 @@ import 'package:flashcards2/domain/reminders/reminder.dart';
 import 'package:flashcards2/domain/reminders/reminder_payload.dart';
 import 'package:flashcards2/domain/repositories/card_repository.dart';
 import 'package:flashcards2/domain/repositories/course_repository.dart';
+import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/study_reminder_router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Member stubs that throw unless a test overrides what it needs — keeps the
@@ -103,6 +107,46 @@ void main() {
       );
 
       expect(route, isNull);
+    });
+  });
+
+  group('routeReminderPayload feedback', () {
+    testWidgets('a tap whose target was deleted tells the learner', (
+      tester,
+    ) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final key = GlobalKey<NavigatorState>();
+      WidgetRef? ref;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [databaseProvider.overrideWithValue(db)],
+          child: Consumer(
+            builder: (context, widgetRef, _) {
+              ref = widgetRef;
+              return MaterialApp(
+                navigatorKey: key,
+                home: const Scaffold(body: Text('gate resolved')),
+              );
+            },
+          ),
+        ),
+      );
+
+      await routeReminderPayload(
+        encodeReminderPayload(ReminderScope.theme, 7),
+        navigatorKey: key,
+        ref: ref!,
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(
+        find.textContaining('course or theme no longer exists'),
+        findsOneWidget,
+        reason: 'a reminder that leads nowhere must say so instead of '
+            'silently ignoring the tap',
+      );
     });
   });
 

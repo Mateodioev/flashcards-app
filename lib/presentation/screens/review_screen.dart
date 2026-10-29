@@ -170,14 +170,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         title: Text('${_index + 1} of ${widget.items.length}'),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => _confirmEndSession(context),
           tooltip: 'End session',
         ),
       ),
       body: cardAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
-            Center(child: Text('Could not load card.\n$error')),
+            const Center(child: Text('Could not load this card.')),
         data: (card) {
           if (card == null) {
             return const Center(child: Text('Card no longer exists.'));
@@ -237,6 +237,33 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       _revealed = true;
       _attempted = _recall.text.trim().isNotEmpty || _attemptedAloud;
     });
+  }
+
+  /// A stray tap used to kill the session — and with it the summary the
+  /// learner never got to see. Ratings are already persisted per card, so the
+  /// dialog can honestly promise nothing is lost, but leaving is still a
+  /// deliberate act.
+  Future<void> _confirmEndSession(BuildContext context) async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('End session?'),
+        content: const Text('Your ratings so far are saved.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep studying'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('End session'),
+          ),
+        ],
+      ),
+    );
+    if ((leave ?? false) && context.mounted) {
+      Navigator.of(context).pop();
+    }
   }
 }
 

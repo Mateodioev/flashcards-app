@@ -35,11 +35,15 @@ class CourseListScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.auto_awesome_outlined),
             tooltip: 'Import from image',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const ImageImportScreen(),
-              ),
-            ),
+            onPressed: () async {
+              final result = await Navigator.of(context).push<Object?>(
+                MaterialPageRoute<Object?>(
+                  builder: (_) => const ImageImportScreen(),
+                ),
+              );
+              if (!context.mounted) return;
+              reportImageImportResult(context, result);
+            },
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -525,6 +529,19 @@ Future<bool> _finalDeleteConfirmation(BuildContext context) async {
 }
 
 String _count(int n, String noun) => '$n $noun${n == 1 ? '' : 's'}';
+
+/// Reports the image-import result the route pops with. Saving five cards
+/// used to silently drop the learner back at the course list — this is the
+/// audible "it worked".
+void reportImageImportResult(BuildContext context, Object? result) {
+  if (result is! ({int count, String theme}) || result.count == 0) return;
+  final noun = result.count == 1 ? 'card' : 'cards';
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('${result.count} $noun added to "${result.theme}".'),
+    ),
+  );
+}
 
 /// The panel revealed under a dismissing item: red delete on the left
 /// (swipe right), primary edit on the right (swipe left).

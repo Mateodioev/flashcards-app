@@ -94,7 +94,7 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
           ),
         );
       }
-    } on Object catch (e) {
+    } on Object {
       // Without this the screen simply stayed put on a failure: the tap looked
       // like it worked and the learner's text was silently dropped. Losing an
       // authored card without a word is worse than an ugly error.
@@ -103,7 +103,7 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
         _saving = false;
         _error =
             'Could not save the card. Your text is still here — try '
-            'again.\n\n$e';
+            'again.';
       });
       return;
     }
@@ -132,9 +132,9 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
     if (confirmed ?? false) {
       try {
         await ref.read(cardRepositoryProvider).deleteCard(widget.existing!.id);
-      } on Object catch (e) {
+      } on Object {
         if (!mounted) return;
-        setState(() => _error = 'Could not delete the card.\n\n$e');
+        setState(() => _error = 'Could not delete the card.');
         return;
       }
       if (mounted) Navigator.of(context).pop(true);

@@ -6,7 +6,7 @@ import 'package:flashcards2/domain/repositories/card_repository.dart';
 import 'package:flashcards2/domain/repositories/course_repository.dart';
 import 'package:flashcards2/presentation/providers.dart';
 import 'package:flashcards2/presentation/study_session_launcher.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// What a reminder tap resolves into: a global session has neither target,
@@ -75,12 +75,25 @@ Future<void> routeReminderPayload(
     courses: ref.read(courseRepositoryProvider),
     cards: ref.read(cardRepositoryProvider),
   );
-  if (route == null) return;
 
   final context = await waitForNavigatorContext(navigatorKey);
   // waitForNavigatorContext only returns mounted contexts; mounted is
   // reasserted because the lint cannot see through the await.
   if (context == null || !context.mounted) return;
+
+  // A tap on a reminder whose course or theme was deleted used to do
+  // literally nothing — the worst possible answer from a notification.
+  // Now the tap says what happened.
+  if (route == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'That reminder is gone — its course or theme no longer exists.',
+        ),
+      ),
+    );
+    return;
+  }
 
   final course = route.course;
   if (course == null) {

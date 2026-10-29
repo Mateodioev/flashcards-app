@@ -305,7 +305,9 @@ void main() {
       expect(find.text('New course'), findsOneWidget);
     });
 
-    testWidgets('the empty themes list offers to create one', (tester) async {
+    testWidgets('the empty themes list offers to create one', (
+      tester,
+    ) async {
       await seedCourse('Biology');
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
@@ -317,6 +319,43 @@ void main() {
       await tester.tap(find.text('Create your first theme'));
       await tester.pumpAndSettle();
       expect(find.text('New theme'), findsOneWidget);
+    });
+  });
+
+  group('image import feedback', () {
+    Widget resultRunner(Object? result) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () => reportImageImportResult(context, result),
+              child: const Text('run'),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('a saved import says how many cards arrived and where', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        resultRunner((count: 3, theme: 'Cells')),
+      );
+
+      await tester.tap(find.text('run'));
+      await tester.pump();
+
+      expect(find.text('3 cards added to "Cells".'), findsOneWidget);
+    });
+
+    testWidgets('a discarded import says nothing', (tester) async {
+      await tester.pumpWidget(resultRunner(null));
+
+      await tester.tap(find.text('run'));
+      await tester.pump();
+
+      expect(find.byType(SnackBar), findsNothing);
     });
   });
 }

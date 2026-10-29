@@ -131,6 +131,12 @@ void main() {
         findsOneWidget,
         reason: 'the first worry on a failed save is losing what you wrote',
       );
+      expect(
+        find.textContaining('disk full'),
+        findsNothing,
+        reason: 'raw exception text belongs in logs, not in the '
+            "learner's face",
+      );
     });
 
     testWidgets('keeps the editor open and the text intact', (tester) async {

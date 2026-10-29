@@ -241,6 +241,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // The game is adaptive, so there is no honest "of N" total — but a
+        // bare sequence of rounds told the learner nothing about where they
+        // were. A simple counter keeps them oriented without lying.
+        Text(
+          'Round ${_session.trialsTaken + 1}',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.outline,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
         if (_feedback.isNotEmpty) ...[
           Text(
             _feedback,
@@ -344,6 +355,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               : null,
           child: const Text('Check'),
         ),
+        // A disabled Check with no explanation reads as broken; say exactly
+        // what turns it on.
+        if (_entry.length < trial.length) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Type all ${trial.length} digits — Check turns on once they '
+            'are all in.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ],
     );
   }

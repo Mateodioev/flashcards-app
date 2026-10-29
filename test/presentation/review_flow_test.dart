@@ -100,6 +100,54 @@ void main() {
     }
   });
 
+  testWidgets('closing a session mid-way asks first; staying keeps the card', (
+    tester,
+  ) async {
+    final (themeId, ids) = await seedCards(1);
+    await tester.pumpWidget(
+      app(
+        items: [
+          SessionItem(
+            entry: DueEntrySamples.of(ids.first, themeId),
+            isNew: true,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    expect(find.text('End session?'), findsOneWidget);
+
+    await tester.tap(find.text('Keep studying'));
+    await tester.pumpAndSettle();
+    expect(find.text('front 0'), findsOneWidget);
+    expect(find.text('End session?'), findsNothing);
+  });
+
+  testWidgets('confirming the exit guard leaves the session', (tester) async {
+    final (themeId, ids) = await seedCards(1);
+    await tester.pumpWidget(
+      app(
+        items: [
+          SessionItem(
+            entry: DueEntrySamples.of(ids.first, themeId),
+            isNew: true,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('End session'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('front 0'), findsNothing);
+  });
+
   testWidgets('the barrier disables reveal until an attempt exists', (
     tester,
   ) async {
