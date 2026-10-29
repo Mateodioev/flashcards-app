@@ -51,7 +51,9 @@ class CardListScreen extends ConsumerWidget {
         ),
         data: (list) {
           if (list.isEmpty) {
-            return const _EmptyCards();
+            return _EmptyCards(
+              onAdd: () => _openEditor(context, ref, theme, null),
+            );
           }
           return ListView.separated(
             itemCount: list.length,
@@ -78,7 +80,9 @@ class CardListScreen extends ConsumerWidget {
 }
 
 class _EmptyCards extends StatelessWidget {
-  const new();
+  const new({required this.onAdd});
+
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +107,13 @@ class _EmptyCards extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.outline,
               ),
+            ),
+            // Same entry point as the FAB, one tap away instead of making the
+            // learner hunt for the floating button.
+            const SizedBox(height: 24),
+            FilledButton.tonal(
+              onPressed: onAdd,
+              child: const Text('Create your first card'),
             ),
           ],
         ),

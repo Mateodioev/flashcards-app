@@ -49,6 +49,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Biology');
+    // The Create button re-enables one frame after the text field updates.
+    await tester.pump();
     await tester.tap(find.text('Create'));
     await tester.pumpAndSettle();
 
@@ -78,6 +80,8 @@ void main() {
     await tester.tap(find.widgetWithText(FloatingActionButton, 'Course'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'History');
+    // The Create button re-enables one frame after the text field updates.
+    await tester.pump();
     await tester.tap(find.text('Create'));
     await tester.pumpAndSettle();
 

@@ -165,7 +165,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Not measured'),
+        find.text('Not measured — run onboarding'),
         findsOneWidget,
         reason: 'onboarding has not run, and the UI must not invent a number',
       );
@@ -187,7 +187,10 @@ void main() {
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('5 items'), findsOneWidget);
+      expect(
+        find.text('5 items — measured during onboarding'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('both themes render without overflow', (tester) async {

@@ -241,4 +241,82 @@ void main() {
     expect(await db.select(db.themes).get(), isEmpty);
     expect(await db.select(db.cards).get(), isEmpty);
   });
+
+  group('create/rename dialog validation', () {
+    testWidgets('Create stays disabled until a non-blank name is typed', (
+      tester,
+    ) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Course'));
+      await tester.pumpAndSettle();
+      expect(find.text('New course'), findsOneWidget);
+
+      var create = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Create'),
+      );
+      expect(create.onPressed, isNull, reason: 'a blank name must not submit');
+
+      await tester.enterText(find.byType(TextField), '   ');
+      await tester.pump();
+      create = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Create'),
+      );
+      expect(
+        create.onPressed,
+        isNull,
+        reason: 'whitespace-only is still blank',
+      );
+
+      await tester.enterText(find.byType(TextField), 'Biology');
+      await tester.pump();
+      create = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Create'),
+      );
+      expect(create.onPressed, isNotNull);
+    });
+
+    testWidgets('pressing Enter with a blank name keeps the dialog open', (
+      tester,
+    ) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Course'));
+      await tester.pumpAndSettle();
+
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('New course'), findsOneWidget);
+      expect(await db.select(db.courses).get(), isEmpty);
+    });
+  });
+
+  group('empty state calls to action', () {
+    testWidgets('the empty courses list offers to create one', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      expect(find.text('No courses yet'), findsOneWidget);
+      await tester.tap(find.text('Create your first course'));
+      await tester.pumpAndSettle();
+      expect(find.text('New course'), findsOneWidget);
+    });
+
+    testWidgets('the empty themes list offers to create one', (tester) async {
+      await seedCourse('Biology');
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Biology'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No themes yet'), findsOneWidget);
+      await tester.tap(find.text('Create your first theme'));
+      await tester.pumpAndSettle();
+      expect(find.text('New theme'), findsOneWidget);
+    });
+  });
 }

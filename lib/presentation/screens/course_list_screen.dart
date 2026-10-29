@@ -78,10 +78,12 @@ class CourseListScreen extends ConsumerWidget {
         ),
         data: (list) {
           if (list.isEmpty) {
-            return const _EmptyState(
+            return _EmptyState(
               icon: Icons.menu_book_outlined,
               title: 'No courses yet',
               message: 'Create a course to start grouping cards by theme.',
+              actionLabel: 'Create your first course',
+              onAction: () => _createCourse(context, ref),
             );
           }
           return ListView.builder(
@@ -179,10 +181,12 @@ class ThemeListScreen extends ConsumerWidget {
         ),
         data: (list) {
           if (list.isEmpty) {
-            return const _EmptyState(
+            return _EmptyState(
               icon: Icons.folder_outlined,
               title: 'No themes yet',
               message: 'Themes group cards inside a course.',
+              actionLabel: 'Create your first theme',
+              onAction: () => _createTheme(context, ref, course),
             );
           }
           return ListView.builder(
@@ -235,12 +239,22 @@ class ThemeListScreen extends ConsumerWidget {
   }
 }
 
+/// An empty state never leaves the learner at a dead end: when [actionLabel]
+/// and [onAction] are set, the primary way forward is one tap away.
 class _EmptyState extends StatelessWidget {
-  const new({required this.icon, required this.title, required this.message});
+  const new({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final IconData icon;
   final String title;
   final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -262,6 +276,13 @@ class _EmptyState extends StatelessWidget {
                 color: theme.colorScheme.outline,
               ),
             ),
+            if (actionLabel != null && onAction != null) ...<Widget>[
+              const SizedBox(height: 24),
+              FilledButton.tonal(
+                onPressed: onAction,
+                child: Text(actionLabel!),
+              ),
+            ],
           ],
         ),
       ),
@@ -549,14 +570,25 @@ class _NameDialog extends StatefulWidget {
 class _NameDialogState extends State<_NameDialog> {
   late final TextEditingController _controller;
 
+  /// A blank or whitespace-only name must never leave this dialog: before the
+  /// guard existed the dialog closed and the caller silently dropped the
+  /// value, so "Create" appeared to do nothing.
+  bool get _canSubmit => _controller.text.trim().isNotEmpty;
+
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialValue);
+    _controller.addListener(_onNameChanged);
+  }
+
+  void _onNameChanged() {
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onNameChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -569,7 +601,9 @@ class _NameDialogState extends State<_NameDialog> {
         controller: _controller,
         autofocus: true,
         decoration: InputDecoration(labelText: widget.label),
-        onSubmitted: (value) => Navigator.of(context).pop(value),
+        onSubmitted: (value) {
+          if (_canSubmit) Navigator.of(context).pop(value);
+        },
       ),
       actions: <Widget>[
         TextButton(
@@ -577,7 +611,9 @@ class _NameDialogState extends State<_NameDialog> {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
+          onPressed: _canSubmit
+              ? () => Navigator.of(context).pop(_controller.text)
+              : null,
           child: Text(widget.confirmText),
         ),
       ],

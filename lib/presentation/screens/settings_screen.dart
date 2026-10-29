@@ -71,15 +71,22 @@ class SettingsScreen extends ConsumerWidget {
                 '${value.dayCutoffHour.toString().padLeft(2, '0')}:00 — a '
                 'review before this still counts as the previous day',
               ),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () =>
+                  _changeDayCutoff(context, ref, value.dayCutoffHour),
             ),
             const Divider(),
             const _SectionHeader('Onboarding'),
+            // Display-only on purpose: the span is measured by onboarding so
+            // learners cannot fudge their own capacity. `enabled: false`
+            // renders it clearly non-interactive, unlike the surrounding rows.
             ListTile(
+              enabled: false,
               title: const Text('Working memory span'),
               subtitle: Text(
                 value.memorySpan == null
-                    ? 'Not measured'
-                    : '${value.memorySpan} items',
+                    ? 'Not measured — run onboarding'
+                    : '${value.memorySpan} items — measured during onboarding',
               ),
             ),
             ListTile(
@@ -175,6 +182,71 @@ Future<void> _setBarrier(WidgetRef ref, bool enabled) async {
   final current = await repository.read();
   await repository.update(current.copyWith(forcedGenerationBarrier: enabled));
   ref.invalidate(appSettingsProvider);
+}
+
+/// The day cutoff was a display row before; it is now a real setting, written
+/// through the same read-update-invalidate path as every other change here.
+Future<void> _changeDayCutoff(
+  BuildContext context,
+  WidgetRef ref,
+  int currentHour,
+) async {
+  final selected = await showDialog<int>(
+    context: context,
+    builder: (_) => _DayCutoffDialog(currentHour: currentHour),
+  );
+  if (selected == null || selected == currentHour) return;
+
+  final repository = ref.read(settingsRepositoryProvider);
+  final current = await repository.read();
+  await repository.update(current.copyWith(dayCutoffHour: selected));
+  ref.invalidate(appSettingsProvider);
+}
+
+/// Picks the hour (0-23) at which "today" rolls over for scheduling.
+class _DayCutoffDialog extends StatefulWidget {
+  const new({required this.currentHour});
+
+  final int currentHour;
+
+  @override
+  State<_DayCutoffDialog> createState() => _DayCutoffDialogState();
+}
+
+class _DayCutoffDialogState extends State<_DayCutoffDialog> {
+  late int _hour = widget.currentHour;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Day starts at'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: DropdownButton<int>(
+          value: _hour,
+          isExpanded: true,
+          items: <DropdownMenuItem<int>>[
+            for (var hour = 0; hour < 24; hour++)
+              DropdownMenuItem<int>(
+                value: hour,
+                child: Text('${hour.toString().padLeft(2, '0')}:00'),
+              ),
+          ],
+          onChanged: (value) => setState(() => _hour = value ?? _hour),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_hour),
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
 }
 
 /// Shows the app name with the version and build, read from the package at

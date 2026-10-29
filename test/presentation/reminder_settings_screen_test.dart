@@ -96,6 +96,25 @@ void main() {
       await unmount(tester);
     });
 
+    testWidgets('the empty state explains reminders and opens the editor', (
+      tester,
+    ) async {
+      await tester.pumpWidget(app());
+      await settle(tester);
+
+      expect(
+        find.textContaining('daily nudge'),
+        findsOneWidget,
+        reason: 'the empty state says what a reminder is',
+      );
+
+      await tester.tap(find.text('Add your first reminder'));
+      await settle(tester);
+
+      expect(find.byType(ReminderEditorSheet), findsOneWidget);
+      await unmount(tester);
+    });
+
     testWidgets('a seeded row shows target name, time and switch state', (
       tester,
     ) async {

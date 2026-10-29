@@ -50,7 +50,9 @@ class ReminderSettingsScreen extends ConsumerWidget {
                 ),
               ),
               data: (rows) => rows.isEmpty
-                  ? const Center(child: Text('No reminders yet'))
+                  ? _EmptyReminders(
+                      onAdd: () => _openEditor(context, ref, rows),
+                    )
                   : ListView(
                       children: <Widget>[
                         for (final row in rows)
@@ -187,6 +189,50 @@ String _targetName(ReminderSubscription sub, ReminderTargets? targets) {
 String _formatClock(int hour, int minute) {
   return '${hour.toString().padLeft(2, '0')}:'
       '${minute.toString().padLeft(2, '0')}';
+}
+
+/// The empty state explains what a reminder is and offers the same entry
+/// point as the FAB, one tap away instead of a dead-end label.
+class _EmptyReminders extends StatelessWidget {
+  const new({required this.onAdd});
+
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.alarm_add_outlined,
+              size: 48,
+              color: theme.colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text('No reminders yet', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              'Get a daily nudge to review: everything at once, one course, '
+              'or one theme.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.tonal(
+              onPressed: onAdd,
+              child: const Text('Add your first reminder'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ReminderRow extends StatelessWidget {
